@@ -42,7 +42,7 @@ Write-up: **https://meador.dev/docs** · Security model: [`docs/security.md`](do
 | `onprem01/host/` | UFW, Docker-waits-for-mesh drop-in, conditional reboot timer |
 | `onprem01/minecraft/` | `server.properties` and the mod list |
 | `docs/` | Architecture, access policies, security model, lessons learned |
-| `site/` | The static site at meador.dev (plain HTML, deployed on Cloudflare Pages) |
+| `site/` | The static site at meador.dev (plain HTML, deployed on Cloudflare Workers) |
 
 ## Stack
 

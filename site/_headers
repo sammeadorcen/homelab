@@ -1,4 +1,4 @@
-# Cloudflare Pages response headers
+# Cloudflare response headers (static assets)
 /*
   Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'none'
   Strict-Transport-Security: max-age=31536000; includeSubDomains
