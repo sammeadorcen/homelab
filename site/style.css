@@ -1,13 +1,13 @@
 /* Layout: one reading column with a left annotation rail on wide screens,
-   like the margin labels printed on a rhythm strip. ECG paper grid appears
-   only behind the front-page strip. */
+   like margin notes in a lab notebook. The front page carries one full-width
+   wave-interference field. */
 :root {
   --paper: #f4f5f5;
   --surface: #ffffff;
   --ink: #15191c;
   --muted: #59636a;
   --rule: #d8dcde;
-  --signal: #b3302a;          /* accent: ECG red */
+  --signal: #b3302a;          /* accent */
   --grid-minor: #f1dcda;
   --grid-major: #e2b5b0;
   --code-bg: #eceeef;
@@ -149,7 +149,7 @@ pre {
 
 .strip {
   margin: clamp(32px, 6vw, 56px) 0 0;
-  border-block: 1px solid var(--grid-major);
+  border-block: 1px solid var(--rule);
   background: var(--paper);
 }
 .strip canvas { display: block; width: 100%; height: auto; }
