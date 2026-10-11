@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Sam Meador</title>
-<meta name="description" content="Sam Meador — physics major at Auburn, EMT, interested in medicine, and the person running a small self-hosted homelab.">
+<meta name="description" content="Sam Meador — physics major at Auburn University and EMT with an interest in medicine.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -24,139 +24,34 @@
   </div>
 </header>
 
-<main>
-  <section class="wrap hero">
-    <p class="eyebrow">Auburn University · Physics</p>
+<main class="wrap">
+  <section class="intro">
     <h1>Sam Meador</h1>
-    <p class="lede">Physics major and trained EMT with a strong interest in <em>medicine</em>. In between classes I run a small self-hosted homelab.</p>
+    <p class="lede">Physics major at Auburn University, trained EMT, and future physician, pending several years of chemistry.</p>
+    <p>I'm a first-year student interested in medicine. Before college I completed EMT training and spent time on a 911 ambulance, and I've since shadowed in trauma surgery, cardiothoracic surgery, critical care and cardiology. I haven't picked a specialty yet. So far I've liked every one I've seen, which I'm told is a good problem to have.</p>
+    <p>Outside of class I run a small home server setup that I built and secured myself. It is, by a wide margin, the most reliable thing I own.</p>
   </section>
 
-  <figure class="strip" aria-label="Animated interference pattern from two coherent wave sources">
-    <canvas id="field" width="1200" height="240"></canvas>
-    <figcaption class="wrap strip-meta">
-      <span>ψ = ψ₁ + ψ₂</span>
-      <span>two coherent sources · d = 3λ</span>
-      <span>nodal lines: Δr = (n + ½)λ</span>
-    </figcaption>
-  </figure>
+  <dl class="facts">
+    <div><dt>School</dt><dd>Auburn University, B.S. Physics</dd></div>
+    <div><dt>Certification</dt><dd>EMT training complete. National registry exam is next.</dd></div>
+    <div><dt>Clinical</dt><dd>EMS ride time; shadowing in trauma, CT surgery, critical care and cardiology</dd></div>
+    <div><dt>Involved in</dt><dd>HOSA, Pre-Med Association</dd></div>
+    <div><dt>Currently</dt><dd>Taking general chemistry, which so far is mostly significant figures</dd></div>
+  </dl>
 
-  <div class="wrap">
-    <nav class="doors" aria-label="Sections">
-      <a class="door" href="about.html">
-        <span class="label">About</span>
-        <h2>Who I am <span class="arrow" aria-hidden="true">→</span></h2>
-        <p>Physics, medicine, and the computers I keep rebuilding.</p>
-      </a>
-      <a class="door" href="docs.html">
-        <span class="label">Homelab docs</span>
-        <h2>The setup <span class="arrow" aria-hidden="true">→</span></h2>
-        <p>Two servers, one private WireGuard mesh, and a full rundown of how it's locked down.</p>
-      </a>
-    </nav>
-
-    <section class="now" aria-labelledby="now-h">
-      <h2 id="now-h" class="label">Now</h2>
-      <ul>
-        <li><span class="label">School</span><span>First semester at Auburn: chemistry, biology, and a film class I actually like.</span></li>
-        <li><span class="label">Medicine</span><span>Studying for the NREMT and shadowing in as many specialties as I can.</span></li>
-        <li><span class="label">Homelab</span><span>Planning a Proxmox storage server so movies come from local disks instead of the cloud.</span></li>
-        <li><span class="label">Playing</span><span>A modded Fabric Minecraft server for friends, plus Final Fantasy XIV.</span></li>
-      </ul>
-    </section>
-  </div>
+  <nav class="next" aria-label="More">
+    <a href="about.html"><span>More about me</span><span aria-hidden="true">→</span></a>
+    <a href="docs.html"><span>Homelab documentation</span><span aria-hidden="true">→</span></a>
+    <a href="https://github.com/sammeadorcen/homelab"><span>GitHub</span><span aria-hidden="true">↗</span></a>
+  </nav>
 </main>
 
 <footer class="site-foot">
   <div class="wrap">
     <span>© 2026 Sam Meador</span>
-    <span>Plain HTML on Cloudflare · <a href="https://github.com/sammeadorcen/homelab">Source</a></span>
+    <span>Hand-written HTML, no frameworks were harmed</span>
   </div>
 </footer>
-
-<script>
-(() => {
-  const canvas = document.getElementById('field');
-  if (!canvas || !canvas.getContext) return;
-  const ctx = canvas.getContext('2d');
-  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
-
-  // Two point sources in phase, separated by d = 3λ, sitting just below the
-  // bottom edge. Each dot's size is the superposed amplitude at that point,
-  // so the dark gaps trace the nodal hyperbolas.
-  const SPACING = 11;        // px between dots
-  let W, H, dots = [], colors, lambda, k;
-  const OMEGA = 2.2;         // rad/s
-
-  function readColors() {
-    const s = getComputedStyle(document.documentElement);
-    colors = { ink: s.getPropertyValue('--ink').trim(), signal: s.getPropertyValue('--signal').trim(), paper: s.getPropertyValue('--paper').trim() };
-  }
-
-  function size() {
-    const cssW = canvas.clientWidth || canvas.parentElement.clientWidth;
-    const cssH = Math.round(Math.min(260, Math.max(170, cssW * 0.22)));
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = Math.round(cssW * dpr);
-    canvas.height = Math.round(cssH * dpr);
-    canvas.style.height = cssH + 'px';
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    W = cssW; H = cssH;
-    lambda = Math.max(26, Math.min(44, W / 30));
-    k = 2 * Math.PI / lambda;
-    const d = 3 * lambda;
-    const s1 = { x: W / 2 - d / 2, y: H + lambda * 0.6 };
-    const s2 = { x: W / 2 + d / 2, y: H + lambda * 0.6 };
-    dots = [];
-    const ox = (W % SPACING) / 2 + SPACING / 2, oy = (H % SPACING) / 2 + SPACING / 2;
-    for (let y = oy; y < H; y += SPACING) {
-      for (let x = ox; x < W; x += SPACING) {
-        dots.push({ x, y, r1: Math.hypot(x - s1.x, y - s1.y), r2: Math.hypot(x - s2.x, y - s2.y) });
-      }
-    }
-  }
-
-  function draw(t) {
-    ctx.fillStyle = colors.paper;
-    ctx.fillRect(0, 0, W, H);
-    const maxR = SPACING * 0.42;
-    const ph = OMEGA * t;
-    ctx.fillStyle = colors.ink;
-    ctx.beginPath();
-    for (const p of dots) {
-      // Instantaneous superposition, normalised to 0..1
-      const a = (Math.cos(k * p.r1 - ph) + Math.cos(k * p.r2 - ph)) / 2;
-      const r = maxR * Math.abs(a);
-      if (r < 0.35) continue;
-      ctx.moveTo(p.x + r, p.y);
-      ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
-    }
-    ctx.fill();
-  }
-
-  let raf = 0, t0 = 0, visible = true;
-  function loop(now) {
-    if (!t0) t0 = now;
-    draw((now - t0) / 1000);
-    raf = requestAnimationFrame(loop);
-  }
-  function start() {
-    cancelAnimationFrame(raf);
-    if (!reduce.matches && visible && !document.hidden) raf = requestAnimationFrame(loop);
-  }
-
-  function redraw() { readColors(); size(); draw(0.35); start(); }
-
-  redraw();
-  let rt;
-  window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(redraw, 120); });
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redraw);
-  reduce.addEventListener('change', redraw);
-  new MutationObserver(redraw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-  document.addEventListener('visibilitychange', start);
-  if ('IntersectionObserver' in window) {
-    new IntersectionObserver(([e]) => { visible = e.isIntersecting; start(); }).observe(canvas);
-  }
-})();
-</script>
 </body>
 </html>
