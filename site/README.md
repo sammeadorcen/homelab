@@ -9,5 +9,4 @@ Plain HTML and one stylesheet. No build step.
 | `docs.html` | Homelab docs and security rundown |
 | `_headers` | Security headers (CSP, HSTS) applied by Cloudflare Pages |
 
-Deploy: Cloudflare Pages → connect this repo → framework preset **None**, build
-command empty, output directory `site`. Pages serves `docs.html` at `/docs`.
+Deploy: Cloudflare Workers Builds (see `../wrangler.jsonc`). Deploy command `npx wrangler deploy`, no build command.

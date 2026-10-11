@@ -1,0 +1,9 @@
+// Cloudflare Workers config for the meador.dev site.
+// Serves the plain HTML in ./site as static assets. No server code.
+{
+  "name": "meador-dev",
+  "compatibility_date": "2026-09-01",
+  "assets": {
+    "directory": "./site"
+  }
+}
