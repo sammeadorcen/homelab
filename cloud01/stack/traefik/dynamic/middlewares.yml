@@ -1,0 +1,19 @@
+http:
+  middlewares:
+    hardening:
+      headers:
+        stsSeconds: 31536000
+        stsIncludeSubdomains: true
+        contentTypeNosniff: true
+        frameDeny: true
+        referrerPolicy: "same-origin"
+        customResponseHeaders:
+          Server: ""
+
+    # Rejects anything not sourced from the NetBird mesh (CGNAT range).
+    # Only works because Traefik runs on host networking and sees real IPs.
+    mesh-only:
+      ipAllowList:
+        sourceRange:
+          - "100.64.0.0/10"
+          - "127.0.0.1/32"

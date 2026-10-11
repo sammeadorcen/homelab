@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# /usr/local/bin/maybe-reboot — reboot for updates, unless someone is playing.
+set -uo pipefail
+
+if ss -tn state established '( sport = :25565 )' 2>/dev/null | tail -n +2 | grep -q .; then
+    echo "Players connected — skipping reboot"
+    exit 0
+fi
+
+if [ -f /var/run/reboot-required ]; then
+    echo "Reboot required — rebooting in 1 minute"
+    /usr/sbin/shutdown -r +1 "Applying updates"
+else
+    echo "No reboot required"
+fi

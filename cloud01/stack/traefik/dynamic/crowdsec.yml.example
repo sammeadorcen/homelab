@@ -1,0 +1,15 @@
+# Copy to crowdsec.yml (gitignored) and paste the key from:
+#   docker compose exec crowdsec cscli bouncers add traefik-bouncer
+http:
+  middlewares:
+    crowdsec:
+      plugin:
+        crowdsec-bouncer:
+          enabled: true
+          logLevel: INFO
+          crowdsecMode: live
+          crowdsecLapiScheme: http
+          crowdsecLapiHost: 127.0.0.1:8085
+          crowdsecLapiKey: REPLACE_WITH_BOUNCER_KEY
+          updateIntervalSeconds: 60
+          defaultDecisionSeconds: 60

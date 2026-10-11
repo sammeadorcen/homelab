@@ -1,0 +1,19 @@
+Unattended-Upgrade::Origins-Pattern {
+    "origin=Debian,codename=${distro_codename},label=Debian";
+    "origin=Debian,codename=${distro_codename},label=Debian-Security";
+    "origin=Debian,codename=${distro_codename}-security,label=Debian-Security";
+    "origin=Debian,codename=${distro_codename}-updates";
+    "origin=Docker";
+    // NetBird's apt repo publishes origin "Artifactory", not "Netbird".
+    // With the wrong name the client is never upgraded.
+    "origin=Artifactory,label=Artifactory";
+};
+Unattended-Upgrade::Remove-Unused-Kernel-Packages "true";
+Unattended-Upgrade::Remove-New-Unused-Dependencies "true";
+Unattended-Upgrade::Remove-Unused-Dependencies "true";
+// A public box: an unpatched kernel is worse than a 04:30 reboot.
+Unattended-Upgrade::Automatic-Reboot "true";
+Unattended-Upgrade::Automatic-Reboot-WithUsers "true";
+Unattended-Upgrade::Automatic-Reboot-Time "04:30";
+Unattended-Upgrade::SyslogEnable "true";
+Unattended-Upgrade::MinimalSteps "true";

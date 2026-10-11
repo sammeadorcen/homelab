@@ -1,0 +1,17 @@
+http:
+  middlewares:
+    hardening:
+      headers:
+        stsSeconds: 31536000
+        contentTypeNosniff: true
+        frameDeny: true
+        referrerPolicy: "same-origin"
+        customResponseHeaders:
+          Server: ""
+
+    mesh-only:
+      ipAllowList:
+        sourceRange:
+          - "100.64.0.0/10"
+          - "127.0.0.1/32"
+          - "172.18.0.0/16"   # BRIDGE_SUBNET — the Panel calls Wings from here

@@ -1,0 +1,40 @@
+# /etc/pelican/config.yml — TEMPLATE ONLY.
+#
+# Generate the real file in the Panel (Admin → Nodes → your node →
+# Configuration) and paste it in. Don't use `wings configure`: its token is
+# single-use and failures are silent. Then make the edits marked below.
+#
+# The real file contains the node token. Never commit it.
+
+debug: false
+uuid: REPLACE_FROM_PANEL
+token_id: REPLACE_FROM_PANEL
+token: REPLACE_FROM_PANEL
+
+api:
+  host: 0.0.0.0        # EDIT: the container's bridge address, reached by Traefik
+  port: 8080
+  ssl:
+    enabled: false     # EDIT: Traefik terminates TLS
+    cert: ""           # EDIT: blank the Let's Encrypt paths the Panel writes
+    key: ""
+  upload_limit: 100
+
+system:
+  data: /var/lib/pelican/volumes
+  sftp:
+    bind_port: 2022
+
+# EDIT: must be the Panel's public hostname, not a container name, or every
+# console websocket is rejected.
+remote: 'https://panel.example.com'
+
+# EDIT (required): the node heart and server console are direct
+# browser → Wings requests. Without this, Wings rejects the Origin header and
+# reports a misleading "does not match node token_id".
+allowed_origins:
+  - 'https://panel.example.com'
+
+# EDIT (required): otherwise the Panel pushes its own copy of this file on
+# save and wipes allowed_origins.
+ignore_panel_config_updates: true

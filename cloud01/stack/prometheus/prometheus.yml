@@ -1,0 +1,23 @@
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: node
+    static_configs:
+      - targets: ["node-exporter:9100"]
+        labels: { host: cloud01 }
+      # onprem01's exporters bind to its mesh IP; this name resolves there.
+      - targets: ["onprem01.example.com:9100"]
+        labels: { host: onprem01 }
+
+  - job_name: docker
+    static_configs:
+      - targets: ["cadvisor:8080"]
+        labels: { host: cloud01 }
+      - targets: ["onprem01.example.com:8081"]
+        labels: { host: onprem01 }

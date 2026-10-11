@@ -1,0 +1,163 @@
+# onprem01 — home server (Debian 13). No public IP, no port forwards.
+# Every service is reachable only over the NetBird mesh.
+#
+# Copy .env.example to .env and fill it in. Nothing secret lives in this file.
+
+name: stack
+
+networks:
+  default:
+    name: stack_default
+    external: true   # docker network create stack_default
+
+services:
+
+  traefik:
+    image: traefik:v3.6
+    container_name: traefik
+    restart: unless-stopped
+    # Listens on *:443; UFW only admits wt0 (mesh) and the Docker bridge.
+    # Binding to the mesh IP alone breaks container -> Traefik traffic.
+    network_mode: host
+    environment:
+      CLOUDFLARE_DNS_API_TOKEN: ${CF_API_TOKEN}
+      TZ: ${TZ}
+    volumes:
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./traefik/dynamic:/etc/traefik/dynamic:ro
+      - ./data/traefik:/data
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    security_opt: [no-new-privileges:true]
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # ── Game servers ──────────────────────────────────────────────────────
+
+  pelican:
+    image: ghcr.io/pelican/panel:latest       # not pelican-dev/panel
+    container_name: pelican
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ}
+      APP_URL: https://panel.${DOMAIN}
+      APP_TIMEZONE: ${TZ}
+      BEHIND_PROXY: "true"                   # else: "lets encrypt email must be set"
+      TRUSTED_PROXIES: ${BRIDGE_SUBNET}      # CIDR, else mixed-content CSS
+      XDG_DATA_HOME: /pelican-data
+      DB_CONNECTION: sqlite                  # else: "nc: bad port ''" loop
+      DB_DATABASE: /pelican-data/database/database.sqlite
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./data/pelican:/pelican-data         # chown 82:82 first
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.panel.rule=Host(`panel.${DOMAIN}`)"
+      - "traefik.http.routers.panel.entrypoints=websecure"
+      - "traefik.http.routers.panel.service=panel"
+      - "traefik.http.routers.panel.middlewares=hardening@file,mesh-only@file"
+      - "traefik.http.services.panel.loadbalancer.server.port=80"
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  wings:
+    image: ghcr.io/pelican/wings:latest
+    container_name: wings
+    restart: unless-stopped
+    tty: true
+    # Wings must call the Panel by its public hostname (websocket origin
+    # checks), but that name resolves to the mesh IP, which a container
+    # can't route to. Point it at the bridge gateway, where Traefik listens.
+    extra_hosts:
+      - "panel.${DOMAIN}:${BRIDGE_GATEWAY}"
+    environment:
+      TZ: ${TZ}
+      WINGS_UID: 988
+      WINGS_GID: 988
+      WINGS_USERNAME: pelican
+    ports:
+      - "${MESH_IP}:2022:2022"               # SFTP, mesh only
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /var/lib/docker/containers/:/var/lib/docker/containers/
+      - /etc/pelican/:/etc/pelican/
+      - /var/lib/pelican/:/var/lib/pelican/
+      - /var/log/pelican/:/var/log/pelican/
+      - /tmp/pelican/:/tmp/pelican/
+      - /etc/ssl/certs:/etc/ssl/certs:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.wings.rule=Host(`wings.${DOMAIN}`)"
+      - "traefik.http.routers.wings.entrypoints=websecure"
+      - "traefik.http.routers.wings.service=wings"
+      - "traefik.http.routers.wings.middlewares=hardening@file"
+      - "traefik.http.services.wings.loadbalancer.server.port=8080"
+      # No Watchtower label: Wings is updated by hand, together with the Panel.
+
+  # ── Media (being replaced by local Jellyfin) ──────────────────────────
+
+  stremio:
+    image: stremio/server:latest
+    container_name: stremio
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ}
+      NO_CORS: "1"
+    volumes:
+      - ./data/stremio:/root/.stremio-server
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.stremio.rule=Host(`stremio.${DOMAIN}`)"
+      - "traefik.http.routers.stremio.entrypoints=websecure"
+      - "traefik.http.routers.stremio.service=stremio"
+      - "traefik.http.routers.stremio.middlewares=hardening@file,mesh-only@file"
+      - "traefik.http.services.stremio.loadbalancer.server.port=11470"
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # ── Monitoring exporters (scraped by cloud01 over the mesh) ───────────
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    restart: unless-stopped
+    command: ["--path.rootfs=/host"]
+    pid: host
+    ports:
+      - "${MESH_IP}:9100:9100"
+    volumes:
+      - /:/host:ro,rslave
+    security_opt: [no-new-privileges:true]
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    restart: unless-stopped
+    privileged: true
+    devices: [/dev/kmsg]
+    ports:
+      - "${MESH_IP}:8081:8080"
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  watchtower:
+    image: nickfedor/watchtower:latest
+    container_name: watchtower
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ}
+      WATCHTOWER_CLEANUP: "true"
+      WATCHTOWER_LABEL_ENABLE: "true"
+      WATCHTOWER_ROLLING_RESTART: "true"
+      WATCHTOWER_TIMEOUT: 90s
+      WATCHTOWER_SCHEDULE: "0 0 4 * * *"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    security_opt: [no-new-privileges:true]
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"

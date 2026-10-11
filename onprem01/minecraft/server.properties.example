@@ -1,0 +1,11 @@
+# Relevant lines only. Tuned for 1–5 players on a 12th-gen i7.
+view-distance=10
+simulation-distance=6
+network-compression-threshold=256
+sync-chunk-writes=false
+max-players=10
+online-mode=true
+white-list=true
+enforce-whitelist=true
+enable-rcon=false
+# server-ip left blank — Wings binds the allocation to the mesh IP.

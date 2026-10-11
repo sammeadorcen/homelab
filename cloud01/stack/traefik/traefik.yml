@@ -1,0 +1,66 @@
+# Traefik static config — cloud01
+# Static config can't read env vars: replace example.com and the ACME email.
+
+global:
+  checkNewVersion: false
+  sendAnonymousUsage: false
+
+api:
+  dashboard: true
+  insecure: false
+
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+  websecure:
+    address: ":443"
+    http3: {}
+    http:
+      tls:
+        certResolver: cloudflare
+        # One wildcard instead of a cert per hostname: a restart re-requests
+        # every per-host cert at once and trips Cloudflare's API rate limit.
+        domains:
+          - main: "cloud.example.com"
+            sans:
+              - "*.cloud.example.com"
+
+providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
+    network: stack_default
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
+
+certificatesResolvers:
+  cloudflare:
+    acme:
+      email: admin@example.com
+      storage: /data/acme.json
+      dnsChallenge:
+        provider: cloudflare
+        resolvers:
+          - "1.1.1.1:53"
+          - "1.0.0.1:53"
+
+log:
+  level: INFO
+
+# JSON to a file so CrowdSec can parse client IPs and status codes.
+accessLog:
+  filePath: /var/log/traefik/access.log
+  format: json
+  bufferingSize: 100
+
+experimental:
+  plugins:
+    crowdsec-bouncer:
+      moduleName: github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin
+      version: v1.3.5   # check releases for the current tag

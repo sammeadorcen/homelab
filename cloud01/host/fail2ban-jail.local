@@ -1,0 +1,14 @@
+# /etc/fail2ban/jail.local — SSH only. HTTP brute force is CrowdSec's job.
+[DEFAULT]
+backend  = systemd
+bantime  = 1h
+findtime = 10m
+maxretry = 5
+bantime.increment = true
+bantime.factor    = 2
+bantime.maxtime   = 1w
+ignoreip = 127.0.0.1/8 ::1 100.64.0.0/10
+
+[sshd]
+enabled = true
+mode    = aggressive

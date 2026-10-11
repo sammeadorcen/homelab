@@ -1,0 +1,6 @@
+[Unit]
+Description=Reboot if updates require it and nobody is playing
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/maybe-reboot

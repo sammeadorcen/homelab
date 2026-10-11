@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Homelab Docs · Sam Meador</title>
+<meta name="description" content="How Sam Meador's two-server homelab is built and secured: NetBird mesh, Traefik, CrowdSec, Vaultwarden, Pelican and Minecraft.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="site-head">
+  <div class="wrap">
+    <a class="wordmark" href="./">Sam Meador<span>.</span></a>
+    <nav class="site-nav" aria-label="Main">
+      <a href="about.html">About</a>
+      <a href="docs.html" aria-current="page">Homelab docs</a>
+      <a href="https://github.com/GITHUB_USERNAME/homelab">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <header class="page-head">
+    <p class="eyebrow">Homelab docs · updated October 2026</p>
+    <h1>Two boxes, one private mesh</h1>
+    <p class="lede">A small cloud VPS is the only thing on the public internet. A server at home joins it over a self-hosted WireGuard mesh and accepts no inbound connections at all. This page covers what runs where, how it's reached, and how it's secured.</p>
+  </header>
+
+  <div class="docs">
+    <nav class="toc" aria-label="On this page">
+      <span class="label">On this page</span>
+      <ol>
+        <li><a href="#goals"><span>01</span>Goals</a></li>
+        <li><a href="#topology"><span>02</span>Topology</a></li>
+        <li><a href="#hosts"><span>03</span>Hosts</a></li>
+        <li><a href="#services"><span>04</span>Services</a></li>
+        <li><a href="#network"><span>05</span>Network &amp; DNS</a></li>
+        <li><a href="#access"><span>06</span>Identity &amp; access</a></li>
+        <li><a href="#updates"><span>07</span>Updates</a></li>
+        <li><a href="#ops"><span>08</span>Monitoring &amp; backups</a></li>
+        <li><a href="#security"><span>09</span>Security rundown</a></li>
+        <li><a href="#lessons"><span>10</span>Lessons learned</a></li>
+        <li><a href="#roadmap"><span>11</span>Roadmap</a></li>
+        <li><a href="#source"><span>12</span>Source</a></li>
+      </ol>
+    </nav>
+
+    <div class="docs-body">
+
+      <section class="section" id="goals">
+        <header><span class="label">01</span><h2>Goals</h2></header>
+        <div class="prose">
+          <ul>
+            <li><strong>Nothing at home is exposed.</strong> I live on a managed apartment network with no port forwarding, and I don't trust it anyway. The home server only ever dials out.</li>
+            <li><strong>It survives a move.</strong> No static IPs, no DHCP reservations, no router settings. Plug the home box in anywhere with internet and it comes back on the same mesh address.</li>
+            <li><strong>Set and forget.</strong> The OS, the containers and the mesh client patch themselves. Reboots are scheduled around people playing.</li>
+            <li><strong>As little attack surface as possible.</strong> One public VM, four ports, two public apps. Everything else needs a mesh connection first.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="section" id="topology">
+        <header><span class="label">02</span><h2>Topology</h2></header>
+        <div class="topo" role="img" aria-label="Diagram: the internet reaches cloud01 on ports 80, 443 and 3478. cloud01 runs the NetBird server, which my devices, friends' PCs and onprem01 connect to over WireGuard.">
+          <div class="internet">Internet → 80 · 443 · 3478/udp</div>
+          <div class="link">Linode Cloud Firewall → UFW</div>
+          <div class="node">
+            <h3>cloud01 <small>Linode VPS · Debian 13</small></h3>
+            <div class="chips">
+              <span class="chip public">Traefik</span>
+              <span class="chip public">NetBird server</span>
+              <span class="chip public">Vaultwarden</span>
+              <span class="chip">CrowdSec</span>
+              <span class="chip">Prometheus</span>
+              <span class="chip">Grafana</span>
+              <span class="chip">Uptime Kuma</span>
+              <span class="chip">Dozzle</span>
+              <span class="chip">Homer</span>
+              <span class="chip">Filebrowser</span>
+              <span class="chip">Watchtower</span>
+            </div>
+          </div>
+          <div class="link">WireGuard mesh (NetBird) · every peer dials out to cloud01</div>
+          <div class="row">
+            <div class="node">
+              <h3>My devices <small>group: admins</small></h3>
+              <p>Laptop, desktop, phone. Reach everything.</p>
+            </div>
+            <div class="node">
+              <h3>Friends <small>group: All</small></h3>
+              <p>Log in with an allow-listed Google account. Reach Minecraft only.</p>
+            </div>
+            <div class="node">
+              <h3>onprem01 <small>home · Debian 13</small></h3>
+              <div class="chips">
+                <span class="chip">Traefik</span>
+                <span class="chip">Pelican Panel</span>
+                <span class="chip">Wings</span>
+                <span class="chip">Minecraft</span>
+                <span class="chip">Stremio</span>
+                <span class="chip">exporters</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="eyebrow">Highlighted chips answer on the public internet. Everything else is mesh-only.</p>
+      </section>
+
+      <section class="section" id="hosts">
+        <header><span class="label">03</span><h2>Hosts</h2></header>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th></th><th>cloud01</th><th>onprem01</th></tr></thead>
+            <tbody>
+              <tr><td class="nowrap">Where</td><td>Linode (Akamai cloud)</td><td>My apartment</td></tr>
+              <tr><td class="nowrap">Hardware</td><td>Shared 2 vCPU, 4 GB RAM, 80 GB</td><td>12th-gen Intel i7, 16 GB RAM, 500 GB</td></tr>
+              <tr><td class="nowrap">OS</td><td>Debian 13</td><td>Debian 13, headless</td></tr>
+              <tr><td class="nowrap">Runtime</td><td>Docker Compose</td><td>Docker Compose</td></tr>
+              <tr><td class="nowrap">Public IP</td><td>Yes: 80, 443, 3478/udp</td><td>None. No inbound rules except the mesh</td></tr>
+              <tr><td class="nowrap">Role</td><td>Mesh control plane, public edge, monitoring</td><td>Game servers, media</td></tr>
+              <tr><td class="nowrap">Break-glass</td><td>Linode Lish browser console</td><td>Keyboard and monitor</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="section" id="services">
+        <header><span class="label">04</span><h2>Services</h2></header>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Service</th><th>Host</th><th>Reachable from</th><th>What it does</th></tr></thead>
+            <tbody>
+              <tr><td>Traefik v3.6</td><td>both</td><td><span class="pill public">Public</span></td><td>Reverse proxy, TLS from Let's Encrypt wildcard certs via Cloudflare DNS-01</td></tr>
+              <tr><td>NetBird</td><td>cloud01</td><td><span class="pill public">Public</span></td><td>Self-hosted mesh: management, signal, relay, STUN, dashboard, built-in identity provider</td></tr>
+              <tr><td>Vaultwarden</td><td>cloud01</td><td><span class="pill public">Public</span></td><td>Bitwarden-compatible password manager</td></tr>
+              <tr><td>CrowdSec</td><td>cloud01</td><td>localhost</td><td>Reads proxy and Vaultwarden logs, bans attackers at Traefik</td></tr>
+              <tr><td>Grafana + Prometheus</td><td>cloud01</td><td><span class="pill mesh">Mesh · admins</span></td><td>Metrics and dashboards for both boxes, 90-day retention</td></tr>
+              <tr><td>node-exporter, cAdvisor</td><td>both</td><td><span class="pill mesh">Mesh · admins</span></td><td>Host and container metrics</td></tr>
+              <tr><td>Uptime Kuma</td><td>cloud01</td><td><span class="pill mesh">Mesh · admins</span></td><td>Up/down checks</td></tr>
+              <tr><td>Dozzle</td><td>cloud01</td><td><span class="pill mesh">Mesh · admins</span></td><td>Live container logs in the browser</td></tr>
+              <tr><td>Homer + Filebrowser</td><td>cloud01</td><td><span class="pill mesh">Mesh · admins</span></td><td>Start page, editable from the browser through a sidecar that can only see its config</td></tr>
+              <tr><td>Pelican Panel + Wings</td><td>onprem01</td><td><span class="pill mesh">Mesh · admins</span></td><td>Game server management, both in Docker</td></tr>
+              <tr><td>Minecraft (Fabric)</td><td>onprem01</td><td><span class="pill friends">Mesh · everyone</span></td><td>Java server for friends, whitelist enforced, ~25 performance and technical mods</td></tr>
+              <tr><td>Stremio server</td><td>onprem01</td><td><span class="pill mesh">Mesh · media</span></td><td>Streaming backend for the Apple TV (being replaced, see roadmap)</td></tr>
+              <tr><td>Watchtower</td><td>both</td><td>none</td><td>Nightly image updates for containers that opt in</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="section" id="network">
+        <header><span class="label">05</span><h2>Network &amp; DNS</h2></header>
+        <div class="prose">
+          <h3>The mesh</h3>
+          <p>NetBird builds a WireGuard mesh between every device. The control plane runs on cloud01; peers connect outbound to it and then talk to each other directly when they can. At home my laptop reaches onprem01 peer-to-peer over the LAN at around 5 ms. On networks that block it, such as campus Wi-Fi, traffic falls back to the relay on cloud01, still end-to-end encrypted.</p>
+          <h3>Mesh-only hostnames without split DNS</h3>
+          <p>Every admin hostname has an ordinary public DNS record, but it points at a mesh address in <code>100.64.0.0/10</code>. Anyone can look it up; only a mesh peer can route to it. There's no local resolver to run and nothing to configure per device or per network.</p>
+          <p>Traefik then checks the source address of every request with an <code>ipAllowList</code> middleware. For that to work Traefik runs with <code>network_mode: host</code>. With normal published ports Docker rewrites every source to its bridge gateway, and the allow-list would see one internal IP for the whole internet.</p>
+          <h3>Certificates</h3>
+          <p>Each box gets one wildcard certificate through a Cloudflare DNS-01 challenge, so services inside the mesh still have real, trusted TLS. The Cloudflare token can edit DNS on one zone and nothing else. One wildcard instead of a cert per hostname keeps restarts from tripping Cloudflare's rate limits.</p>
+          <h3>Home box specifics</h3>
+          <p>Game servers, SFTP and the metrics exporters bind to onprem01's mesh IP rather than <code>0.0.0.0</code>, because Docker-published ports go around the host firewall. Docker is set to wait for the mesh interface at boot so those binds never race it. The Panel reaches Wings through Traefik over the Docker bridge, which needs both an INPUT and a FORWARD firewall rule for the bridge subnet.</p>
+        </div>
+      </section>
+
+      <section class="section" id="access">
+        <header><span class="label">06</span><h2>Identity &amp; access</h2></header>
+        <div class="prose">
+          <p>Logging in to the mesh goes through Google. The OAuth app is kept in testing mode, so only accounts on its test-user list can sign in at all. That list is the allow-list, and adding a friend is one entry. Every allowed account has 2-Step Verification turned on. A local admin account in NetBird's own store is the fallback if Google is unavailable.</p>
+          <p>What each device can reach is decided by NetBird groups and policies. The default allow-all policy is deleted.</p>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Policy</th><th>From → To</th><th>Allows</th></tr></thead>
+            <tbody>
+              <tr><td>admins-everything</td><td>admins → All</td><td>Everything, both ways</td></tr>
+              <tr><td>servers-to-servers</td><td>servers → servers</td><td>Everything (metrics scraping)</td></tr>
+              <tr><td>everyone-minecraft</td><td>All → servers</td><td>TCP 25565, one way</td></tr>
+              <tr><td>media-to-stremio</td><td>media → servers</td><td>TCP 443, one way</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="prose">
+          <p>I'm the only member of <code>admins</code>. Anyone else who logs in lands in <code>All</code> and gets exactly one port. Shell access on the home server uses NetBird SSH, so it's tied to the same login and policies as everything else.</p>
+        </div>
+      </section>
+
+      <section class="section" id="updates">
+        <header><span class="label">07</span><h2>Updates</h2></header>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>What</th><th>How</th><th>When</th></tr></thead>
+            <tbody>
+              <tr><td>Debian, Docker Engine, NetBird client</td><td>unattended-upgrades</td><td class="nowrap">Daily</td></tr>
+              <tr><td>cloud01 reboot</td><td>unattended-upgrades</td><td class="nowrap">04:30, only if needed</td></tr>
+              <tr><td>onprem01 reboot</td><td>Custom timer that checks for connected players first</td><td class="nowrap">Tue 05:00, only if needed</td></tr>
+              <tr><td>Containers, incl. the NetBird server</td><td>Watchtower, opt-in by label</td><td class="nowrap">04:00 nightly</td></tr>
+              <tr><td>Wings</td><td>By hand, with the Panel</td><td class="nowrap">Panel releases</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="section" id="ops">
+        <header><span class="label">08</span><h2>Monitoring &amp; backups</h2></header>
+        <div class="prose">
+          <p>Prometheus on cloud01 scrapes node-exporter and cAdvisor on both machines, reaching the home box over the mesh. Grafana holds 90 days of history, Uptime Kuma watches the Panel and the Minecraft port, and Dozzle shows container logs without an SSH session. Homer is the start page that links it all.</p>
+          <p>Each box backs up nightly at 03:30 with restic to its own object-storage bucket, before Watchtower's update window. Backups are encrypted before they leave the machine and kept for 14 days, 8 weeks and 12 months, with a weekly integrity check and a dead-man ping that alerts if a night is missed. They include the Vaultwarden database, NetBird's encryption key together with its data, the Pelican database, the Wings node token and every game server's files.</p>
+        </div>
+      </section>
+
+      <section class="section" id="security">
+        <header><span class="label">09</span><h2>Security rundown</h2></header>
+        <div class="prose">
+          <h3>Threat model</h3>
+          <p>I'm defending against the background noise of the internet (scanners, credential stuffing, CVE probes), an untrusted apartment network, a friend's account being compromised, and my own mistakes. A well-resourced targeted attacker, physical access to the home box, and a breach of Linode, Cloudflare or Google are out of scope.</p>
+          <h3>Attack surface</h3>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Port</th><th>Service</th><th>Why it's open</th></tr></thead>
+            <tbody>
+              <tr><td class="nowrap">80/tcp</td><td>Traefik</td><td>Redirects to HTTPS. Serves nothing.</td></tr>
+              <tr><td class="nowrap">443/tcp+udp</td><td>Traefik</td><td>NetBird control plane and relay, Vaultwarden. Every other route rejects non-mesh sources.</td></tr>
+              <tr><td class="nowrap">3478/udp</td><td>NetBird STUN</td><td>Lets peers discover their NAT mapping for direct connections.</td></tr>
+              <tr><td class="nowrap">22/tcp</td><td>SSH</td><td><strong>Closed</strong> on both boxes. Mesh only.</td></tr>
+              <tr><td class="nowrap">anything</td><td>onprem01</td><td><strong>Closed</strong> to the internet and the LAN. Only the mesh interface is allowed.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="prose">
+          <h3>Layers, outside in</h3>
+        </div>
+        <ol class="layers">
+          <li><div>
+            <h3>Network edge</h3>
+            <ul>
+              <li>Linode Cloud Firewall, default drop, outside the VM, so Docker's iptables rules can't open anything behind my back.</li>
+              <li>UFW default-deny on both hosts. The home box allows only the mesh interface plus container-to-proxy traffic.</li>
+            </ul>
+          </div></li>
+          <li><div>
+            <h3>Mesh</h3>
+            <ul>
+              <li>Self-hosted control plane, no third-party coordination server.</li>
+              <li>Google SSO with an allow-list and required 2-Step Verification.</li>
+              <li>Least-privilege policies: friends get one TCP port.</li>
+            </ul>
+          </div></li>
+          <li><div>
+            <h3>Reverse proxy</h3>
+            <ul>
+              <li>Containers are only routed if they opt in (<code>exposedByDefault: false</code>).</li>
+              <li>Mesh-only allow-list on every admin route, enforced with real client IPs.</li>
+              <li>Security headers everywhere: HSTS, <code>nosniff</code>, frame deny, strict referrer, no <code>Server</code> header.</li>
+              <li>TLS on every hop, inside the mesh too.</li>
+            </ul>
+          </div></li>
+          <li><div>
+            <h3>Active blocking</h3>
+            <ul>
+              <li>CrowdSec parses Traefik's JSON access log and Vaultwarden's login log for CVE probes, scanning and brute force, and pulls the community blocklist. Bans are enforced by a Traefik plugin placed first on every public route. In its first weeks it banned around 50 addresses.</li>
+              <li>fail2ban on SSH with escalating ban times, as a backstop.</li>
+            </ul>
+          </div></li>
+          <li><div>
+            <h3>Host access</h3>
+            <ul>
+              <li>No root login, a single allowed user, three auth attempts, no forwarding.</li>
+              <li>SSH only over the mesh; NetBird SSH on the home server.</li>
+              <li>Out-of-band recovery that doesn't depend on the network: Lish console and a physical console.</li>
+            </ul>
+          </div></li>
+          <li><div>
+            <h3>Applications</h3>
+            <ul>
+              <li>Vaultwarden: signups closed, no admin token so <code>/admin</code> is a 404, no password hints, 2FA on. The vault is encrypted client-side regardless.</li>
+              <li>Most containers run with <code>no-new-privileges</code>; the proxy and vault drop all Linux capabilities; configs are mounted read-only.</li>
+              <li>Minecraft: online mode, enforced whitelist, no RCON.</li>
+            </ul>
+          </div></li>
+          <li><div>
+            <h3>Patching</h3>
+            <ul>
+              <li>OS, Docker and mesh client update daily; containers nightly. Patch lag is a bigger risk for a one-person lab than a bad update, and backups run first.</li>
+            </ul>
+          </div></li>
+          <li><div>
+            <h3>Secrets</h3>
+            <ul>
+              <li>Tokens and passwords live in <code>chmod 600</code> files on each host, never in compose files or the public repo.</li>
+              <li>Each credential has the narrowest scope available: one DNS zone, one storage bucket per box.</li>
+              <li>The backup password is also kept offline, since the backups exist partly to restore the password vault.</li>
+            </ul>
+          </div></li>
+        </ol>
+
+        <div class="prose">
+          <h3>Accepted risks</h3>
+        </div>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Risk</th><th>Why I accept it</th><th>Mitigation</th></tr></thead>
+            <tbody>
+              <tr><td>Vaultwarden is public</td><td>It has to work when the mesh is down</td><td>Client-side encryption, closed signups, 2FA, CrowdSec, no admin panel</td></tr>
+              <tr><td>The NetBird control plane is public</td><td>Devices have to reach it to join</td><td>SSO allow-list with 2FA, CrowdSec on its routes</td></tr>
+              <tr><td>Docker socket mounted in a few containers</td><td>Needed for routing, updates, logs and game servers</td><td>Read-only where possible; only the proxy is on a public route</td></tr>
+              <tr><td>Everything auto-updates</td><td>Missed patches are the bigger risk</td><td>Opt-in labels, backups before the update window</td></tr>
+              <tr><td>One admin, one region</td><td>It's a homelab</td><td>Encrypted off-box backups and a documented rebuild</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="section" id="lessons">
+        <header><span class="label">10</span><h2>Lessons learned</h2></header>
+        <div class="prose">
+          <p>The full list is in the repo. These cost the most time:</p>
+          <ul>
+            <li><strong>A Docker network you create by hand ignores your configured address pool.</strong> Mine came up as <code>172.18.0.0/16</code> instead of the <code>172.20</code> in <code>daemon.json</code>, and every firewall rule I'd written silently matched nothing. Inspect, don't assume.</li>
+            <li><strong>Containers talking to a host-networked proxy need two firewall rules</strong>, one for INPUT and one for FORWARD. With one, you get timeouts that look like a routing bug.</li>
+            <li><strong>"does not match node token_id" was a CORS problem.</strong> The Pelican console talks to Wings straight from the browser, so Wings needs the Panel in <code>allowed_origins</code>, and the Panel has to be stopped from overwriting that file.</li>
+            <li><strong>NetBird's apt repository calls itself "Artifactory".</strong> With the obvious name in unattended-upgrades, clients never updated.</li>
+            <li><strong>Make Docker wait for the mesh on the home box, never on the cloud box.</strong> On cloud01 the mesh server itself runs in Docker, and the boot deadlocks.</li>
+            <li><strong>Turn on the firewall only after a second way in exists.</strong> I locked myself out of the home box once and fixed it with a monitor.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="section" id="roadmap">
+        <header><span class="label">11</span><h2>Roadmap</h2></header>
+        <div class="prose">
+          <ul>
+            <li>Run Ethernet to the home server; it's on a Wi-Fi extender today.</li>
+            <li>Move from debrid streaming to local media: Proxmox on the home box plus a second Proxmox storage server, mergerfs and SnapRAID over XFS data disks, a ZFS mirror for VMs, Jellyfin with Intel Quick Sync, downloads behind a VPN container. All mesh-only.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="section" id="source">
+        <header><span class="label">12</span><h2>Source</h2></header>
+        <div class="prose">
+          <p>Every compose file, proxy config, firewall script and update policy described here is in the <a href="https://github.com/GITHUB_USERNAME/homelab">homelab repo on GitHub</a>. Domains are replaced with <code>example.com</code>, and keys, tokens and IP addresses are left out; each secret has an <code>.example</code> file showing its shape.</p>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</main>
+
+<footer class="site-foot">
+  <div class="wrap">
+    <span>© 2026 Sam Meador</span>
+    <span><a href="./">Home</a> · <a href="about.html">About</a></span>
+  </div>
+</footer>
+
+<script>
+(() => {
+  const links = [...document.querySelectorAll('.toc a')];
+  const byId = new Map(links.map(a => [a.getAttribute('href').slice(1), a]));
+  if (!('IntersectionObserver' in window)) return;
+  const io = new IntersectionObserver(entries => {
+    for (const e of entries) {
+      if (!e.isIntersecting) continue;
+      links.forEach(a => a.classList.remove('active'));
+      const a = byId.get(e.target.id);
+      if (a) a.classList.add('active');
+    }
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  byId.forEach((_, id) => { const el = document.getElementById(id); if (el) io.observe(el); });
+})();
+</script>
+</body>
+</html>

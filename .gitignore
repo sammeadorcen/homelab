@@ -1,0 +1,17 @@
+# Secrets and runtime state — never committed
+.env
+*.env
+!*.env.example
+**/vaultwarden/vaultwarden.env
+**/traefik/dynamic/crowdsec.yml
+**/backup/restic-password
+**/backup/backup.env
+**/backup/dumps/
+**/data/
+acme.json
+config.yaml
+dashboard.env
+**/wings/config.yml
+*.key
+*.pem
+*.sqlite*

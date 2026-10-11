@@ -1,0 +1,43 @@
+# Traefik static config — onprem01
+# No dashboard and no :80. DNS-01 doesn't need port 80, and nothing here is public.
+
+global:
+  checkNewVersion: false
+  sendAnonymousUsage: false
+
+api:
+  dashboard: false
+
+entryPoints:
+  websecure:
+    address: ":443"
+    http:
+      tls:
+        certResolver: cloudflare
+        domains:
+          - main: "example.com"
+            sans:
+              - "*.example.com"
+
+providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
+    network: stack_default
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
+
+certificatesResolvers:
+  cloudflare:
+    acme:
+      email: admin@example.com
+      storage: /data/acme.json
+      dnsChallenge:
+        provider: cloudflare
+        resolvers:
+          - "1.1.1.1:53"
+          - "1.0.0.1:53"
+
+log:
+  level: INFO

@@ -1,0 +1,12 @@
+[Unit]
+Description=Nightly backup to object storage
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=youruser
+Group=youruser
+ExecStart=/srv/stack/backup/backup.sh
+Nice=15
+IOSchedulingClass=idle

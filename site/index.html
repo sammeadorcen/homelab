@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sam Meador</title>
+<meta name="description" content="Sam Meador — pre-med student at Auburn, EMT, and the person running a small self-hosted homelab.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="site-head">
+  <div class="wrap">
+    <a class="wordmark" href="./">Sam Meador<span>.</span></a>
+    <nav class="site-nav" aria-label="Main">
+      <a href="about.html">About</a>
+      <a href="docs.html">Homelab docs</a>
+      <a href="https://github.com/GITHUB_USERNAME/homelab">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="wrap hero">
+    <p class="eyebrow">Auburn University · Biomedical Sciences</p>
+    <h1>Sam Meador</h1>
+    <p class="lede">Pre-med student and trained EMT, headed for <em>cardiac electrophysiology</em>. In between classes I run a small self-hosted homelab.</p>
+  </section>
+
+  <figure class="strip" aria-label="Animated ECG rhythm strip, lead II, normal sinus rhythm at 72 beats per minute">
+    <canvas id="ecg" width="1200" height="220"></canvas>
+    <figcaption class="wrap strip-meta">
+      <span>II</span>
+      <span>25 mm/s · 10 mm/mV</span>
+      <span>NSR · HR 72</span>
+    </figcaption>
+  </figure>
+
+  <div class="wrap">
+    <nav class="doors" aria-label="Sections">
+      <a class="door" href="about.html">
+        <span class="label">About</span>
+        <h2>Who I am <span class="arrow" aria-hidden="true">→</span></h2>
+        <p>Medicine, school, and the things I spend too much time on: headphones, souls-likes, espresso.</p>
+      </a>
+      <a class="door" href="docs.html">
+        <span class="label">Homelab docs</span>
+        <h2>The setup <span class="arrow" aria-hidden="true">→</span></h2>
+        <p>Two servers, one private WireGuard mesh, and a full rundown of how it's locked down.</p>
+      </a>
+    </nav>
+
+    <section class="now" aria-labelledby="now-h">
+      <h2 id="now-h" class="label">Now</h2>
+      <ul>
+        <li><span class="label">School</span><span>First semester at Auburn: chemistry, biology, and a film class I actually like.</span></li>
+        <li><span class="label">Medicine</span><span>Studying for the NREMT and looking for more time in the EP lab.</span></li>
+        <li><span class="label">Homelab</span><span>Planning a Proxmox storage server so movies come from local disks instead of the cloud.</span></li>
+        <li><span class="label">Playing</span><span>A modded Fabric Minecraft server for friends, plus Final Fantasy XIV.</span></li>
+      </ul>
+    </section>
+  </div>
+</main>
+
+<footer class="site-foot">
+  <div class="wrap">
+    <span>© 2026 Sam Meador</span>
+    <span>Plain HTML on Cloudflare Pages · <a href="https://github.com/GITHUB_USERNAME/homelab">Source</a></span>
+  </div>
+</footer>
+
+<script>
+(() => {
+  const canvas = document.getElementById('ecg');
+  if (!canvas || !canvas.getContext) return;
+  const ctx = canvas.getContext('2d');
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  // Lead II, normal sinus rhythm. Gaussian components in mV, times in s.
+  const HR = 72, RR = 60 / HR;
+  const waves = [
+    { t: 0.16, a: 0.14, w: 0.026 },  // P
+    { t: 0.275, a: -0.12, w: 0.009 }, // Q
+    { t: 0.30, a: 1.25, w: 0.011 },  // R
+    { t: 0.325, a: -0.28, w: 0.010 }, // S
+    { t: 0.56, a: 0.32, w: 0.048 },  // T
+  ];
+  // Small beat-to-beat variation so it doesn't look stamped.
+  const jitter = [0, 0.018, -0.012, 0.022, -0.02, 0.008, -0.006, 0.015, -0.017, 0.01, 0.004, -0.009];
+  const beats = [];
+  { let t = 0.55; for (let i = 0; i < 40; i++) { beats.push(t); t += RR * (1 + jitter[i % jitter.length]); } }
+
+  function mV(t) {
+    // 1 mV calibration pulse at the start of the strip, 200 ms wide.
+    if (t >= 0.08 && t < 0.28) return 1;
+    let v = 0;
+    for (const b of beats) {
+      const dt = t - b;
+      if (dt < -0.1) break;
+      if (dt > 0.9) continue;
+      for (const w of waves) v += w.a * Math.exp(-((dt - w.t) ** 2) / (2 * w.w * w.w));
+    }
+    return v;
+  }
+
+  let W, H, ppm, seconds, colors;
+  const MM_TALL = 30;     // 3 mV of paper
+  const BASE_MM = 19;     // baseline position from top
+
+  function readColors() {
+    const s = getComputedStyle(document.documentElement);
+    colors = {
+      minor: s.getPropertyValue('--grid-minor').trim(),
+      major: s.getPropertyValue('--grid-major').trim(),
+      ink: s.getPropertyValue('--ink').trim(),
+      paper: s.getPropertyValue('--paper').trim(),
+    };
+  }
+
+  function size() {
+    const cssW = canvas.clientWidth || canvas.parentElement.clientWidth;
+    ppm = Math.min(7, Math.max(3.6, cssW / 150));     // px per mm
+    const cssH = Math.round(MM_TALL * ppm);
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width = Math.round(cssW * dpr);
+    canvas.height = Math.round(cssH * dpr);
+    canvas.style.height = cssH + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    W = cssW; H = cssH;
+    seconds = W / ppm / 25;
+  }
+
+  function grid(x0, x1) {
+    ctx.fillStyle = colors.paper;
+    ctx.fillRect(x0, 0, x1 - x0, H);
+    const first = Math.floor(x0 / ppm), last = Math.ceil(x1 / ppm);
+    for (let i = first; i <= last; i++) {
+      const x = Math.round(i * ppm) + 0.5;
+      ctx.strokeStyle = i % 5 === 0 ? colors.major : colors.minor;
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
+    }
+    for (let j = 0; j <= MM_TALL; j++) {
+      const y = Math.round(j * ppm) + 0.5;
+      ctx.strokeStyle = j % 5 === 0 ? colors.major : colors.minor;
+      ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x1, y); ctx.stroke();
+    }
+  }
+
+  const xOf = t => t * 25 * ppm;
+  const yOf = v => (BASE_MM - v * 10) * ppm;
+
+  function trace(t0, t1) {
+    ctx.strokeStyle = colors.ink;
+    ctx.lineWidth = 1.6;
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    const step = 1 / (25 * ppm) / 2;  // half-pixel resolution in time
+    for (let t = t0; t <= t1; t += step) {
+      const x = xOf(t), y = yOf(mV(t));
+      t === t0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+  }
+
+  function full() { grid(0, W); trace(0, seconds); }
+
+  // Monitor-style sweep: a gap travels left to right, redrawing behind it.
+  let cursor = 0, last = 0, raf = 0, visible = true;
+  const GAP_S = 0.24;
+  function frame(now) {
+    if (!last) last = now;
+    const dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    const prev = cursor;
+    cursor += dt;
+    if (cursor > seconds) { cursor = 0; }
+    if (cursor > prev) {
+      const xa = Math.max(0, xOf(prev) - 2), xb = Math.min(W, xOf(cursor + GAP_S));
+      ctx.save();
+      ctx.beginPath(); ctx.rect(xa, 0, xb - xa, H); ctx.clip();
+      grid(xa, xb);
+      trace(Math.max(0, prev - 0.02), cursor);
+      ctx.restore();
+    } else {
+      grid(0, xOf(GAP_S));
+    }
+    raf = requestAnimationFrame(frame);
+  }
+  function start() {
+    cancelAnimationFrame(raf); last = 0;
+    if (!reduce.matches && visible && !document.hidden) raf = requestAnimationFrame(frame);
+  }
+
+  function redraw() { readColors(); size(); full(); cursor = 0; start(); }
+
+  redraw();
+  let rt;
+  window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(redraw, 120); });
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redraw);
+  reduce.addEventListener('change', redraw);
+  new MutationObserver(redraw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  document.addEventListener('visibilitychange', start);
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver(([e]) => { visible = e.isIntersecting; start(); }).observe(canvas);
+  }
+})();
+</script>
+</body>
+</html>

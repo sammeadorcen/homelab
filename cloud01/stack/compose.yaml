@@ -1,0 +1,255 @@
+# cloud01 — public edge + mesh control plane (Linode, Debian 13)
+#
+# Public:     Traefik (80/443), Vaultwarden, NetBird (separate project in ../netbird)
+# Mesh-only:  everything else, enforced by the mesh-only@file middleware
+#
+# Copy .env.example to .env and fill it in. Nothing secret lives in this file.
+
+name: stack
+
+# Created by hand (`docker network create stack_default`) so the NetBird
+# project can join it as an external network. Traefik runs on host networking
+# and never creates it itself.
+networks:
+  default:
+    name: stack_default
+    external: true
+
+services:
+
+  traefik:
+    image: traefik:v3.6
+    container_name: traefik
+    restart: unless-stopped
+    # Host networking, not published ports. Published ports NAT every
+    # connection to the bridge gateway before Traefik sees it, which makes
+    # IP-based rules (mesh-only, CrowdSec) match nothing useful.
+    network_mode: host
+    environment:
+      CLOUDFLARE_DNS_API_TOKEN: ${CF_API_TOKEN}   # exact name matters
+      TZ: ${TZ}
+    volumes:
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./traefik/dynamic:/etc/traefik/dynamic:ro
+      - ./data/traefik:/data
+      - ./data/traefik-logs:/var/log/traefik
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    security_opt: [no-new-privileges:true]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=Host(`traefik.${CLOUD_DOMAIN}`)"
+      - "traefik.http.routers.dashboard.entrypoints=websecure"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.middlewares=hardening@file,mesh-only@file"
+      # Host networking means the provider can't infer a port for Traefik's
+      # own container. The dashboard uses api@internal and ignores this.
+      - "traefik.http.services.dashboard-dummy.loadbalancer.server.port=8080"
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # ── Public ────────────────────────────────────────────────────────────
+
+  vaultwarden:
+    image: vaultwarden/server:latest
+    container_name: vaultwarden
+    restart: unless-stopped
+    user: ${PUID_PGID}
+    env_file: [./vaultwarden/vaultwarden.env]
+    volumes:
+      - ./data/vaultwarden:/data
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.vault.rule=Host(`vault.${CLOUD_DOMAIN}`)"
+      - "traefik.http.routers.vault.entrypoints=websecure"
+      - "traefik.http.routers.vault.service=vaultwarden"
+      # crowdsec first, so a banned IP is refused before anything else runs
+      - "traefik.http.routers.vault.middlewares=crowdsec@file,hardening@file"
+      - "traefik.http.services.vaultwarden.loadbalancer.server.port=8080"
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  crowdsec:
+    image: crowdsecurity/crowdsec:latest
+    container_name: crowdsec
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ}
+      COLLECTIONS: "crowdsecurity/traefik crowdsecurity/http-cve crowdsecurity/base-http-scenarios Dominic-Wagner/vaultwarden"
+    ports:
+      # LAPI on loopback only. Traefik (host network) reaches it at 127.0.0.1:8085.
+      - "127.0.0.1:8085:8080"
+    volumes:
+      - ./crowdsec/acquis.yaml:/etc/crowdsec/acquis.d/stack.yaml:ro
+      - ./data/crowdsec/config:/etc/crowdsec
+      - ./data/crowdsec/data:/var/lib/crowdsec/data
+      - ./data/traefik-logs:/var/log/traefik:ro
+      - ./data/vaultwarden/vaultwarden.log:/var/log/vaultwarden.log:ro
+    security_opt: [no-new-privileges:true]
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # ── Mesh-only: monitoring ─────────────────────────────────────────────
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: unless-stopped
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=90d"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./data/prometheus:/prometheus
+    security_opt: [no-new-privileges:true]
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    restart: unless-stopped
+    command: ["--path.rootfs=/host"]
+    pid: host
+    volumes:
+      - /:/host:ro,rslave
+    security_opt: [no-new-privileges:true]
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    restart: unless-stopped
+    privileged: true
+    devices: [/dev/kmsg]
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: unless-stopped
+    user: "472"
+    environment:
+      TZ: ${TZ}
+      GF_SERVER_ROOT_URL: https://grafana.${CLOUD_DOMAIN}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+    volumes:
+      - ./data/grafana:/var/lib/grafana
+    security_opt: [no-new-privileges:true]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.grafana.rule=Host(`grafana.${CLOUD_DOMAIN}`)"
+      - "traefik.http.routers.grafana.entrypoints=websecure"
+      - "traefik.http.routers.grafana.service=grafana"
+      - "traefik.http.routers.grafana.middlewares=hardening@file,mesh-only@file"
+      - "traefik.http.services.grafana.loadbalancer.server.port=3000"
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  uptime-kuma:
+    image: louislam/uptime-kuma:1
+    container_name: uptime-kuma
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ}
+    volumes:
+      - ./data/uptimekuma:/app/data
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.kuma.rule=Host(`status.${CLOUD_DOMAIN}`)"
+      - "traefik.http.routers.kuma.entrypoints=websecure"
+      - "traefik.http.routers.kuma.service=kuma"
+      - "traefik.http.routers.kuma.middlewares=hardening@file,mesh-only@file"
+      - "traefik.http.services.kuma.loadbalancer.server.port=3001"
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  dozzle:
+    image: amir20/dozzle:latest
+    container_name: dozzle
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ}
+      DOZZLE_NO_ANALYTICS: "true"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    security_opt: [no-new-privileges:true]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.dozzle.rule=Host(`logs.${CLOUD_DOMAIN}`)"
+      - "traefik.http.routers.dozzle.entrypoints=websecure"
+      - "traefik.http.routers.dozzle.service=dozzle"
+      - "traefik.http.routers.dozzle.middlewares=hardening@file,mesh-only@file"
+      - "traefik.http.services.dozzle.loadbalancer.server.port=8080"
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # ── Mesh-only: dashboard ──────────────────────────────────────────────
+
+  homer:
+    image: b4bz/homer:latest
+    container_name: homer
+    restart: unless-stopped
+    user: ${PUID_PGID}
+    environment:
+      TZ: ${TZ}
+    volumes:
+      - ./data/homer:/www/assets
+    security_opt: [no-new-privileges:true]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.homer.rule=Host(`dash.${CLOUD_DOMAIN}`)"
+      - "traefik.http.routers.homer.entrypoints=websecure"
+      - "traefik.http.routers.homer.service=homer"
+      - "traefik.http.routers.homer.middlewares=hardening@file,mesh-only@file"
+      - "traefik.http.services.homer.loadbalancer.server.port=8080"
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # Sidecar that can see only Homer's config directory — edit the dashboard
+  # from a browser without SSH.
+  filebrowser:
+    image: filebrowser/filebrowser:latest
+    container_name: filebrowser
+    restart: unless-stopped
+    user: ${PUID_PGID}
+    environment:
+      TZ: ${TZ}
+    volumes:
+      - ./data/homer:/srv
+      - ./data/filebrowser/database.db:/database.db   # touch it first
+    security_opt: [no-new-privileges:true]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.files.rule=Host(`files.${CLOUD_DOMAIN}`)"
+      - "traefik.http.routers.files.entrypoints=websecure"
+      - "traefik.http.routers.files.service=files"
+      - "traefik.http.routers.files.middlewares=hardening@file,mesh-only@file"
+      - "traefik.http.services.files.loadbalancer.server.port=80"
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # ── Updates ───────────────────────────────────────────────────────────
+
+  watchtower:
+    image: nickfedor/watchtower:latest
+    container_name: watchtower
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ}
+      WATCHTOWER_CLEANUP: "true"
+      WATCHTOWER_LABEL_ENABLE: "true"      # only containers that opt in
+      WATCHTOWER_ROLLING_RESTART: "true"
+      WATCHTOWER_TIMEOUT: 90s
+      WATCHTOWER_SCHEDULE: "0 0 4 * * *"   # 04:00, after the 03:30 backup
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    security_opt: [no-new-privileges:true]
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
