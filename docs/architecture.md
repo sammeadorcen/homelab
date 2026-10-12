@@ -62,8 +62,11 @@ Mail records on the apex are separate and untouched.
 ## Monitoring
 
 Prometheus on cloud01 scrapes node-exporter and cAdvisor on both boxes (the home
-ones over the mesh). Grafana for history, Uptime Kuma for up/down checks, Dozzle
-for container logs, Homer as the start page.
+ones over the mesh), plus Traefik and CrowdSec. Grafana holds history and sends
+resource alerts to Discord; Uptime Kuma checks every service and also alerts to
+Discord; Dozzle shows logs for both boxes through an agent on onprem01. Homepage
+is the start page that ties it together. An outside heartbeat to healthchecks.io
+covers cloud01 itself. Details: [monitoring.md](monitoring.md).
 
 ## Roadmap
 

@@ -100,6 +100,9 @@ services:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.path=/prometheus"
       - "--storage.tsdb.retention.time=90d"
+      - "--web.enable-lifecycle"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"   # Traefik metrics on the host, :8082
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./data/prometheus:/prometheus
@@ -146,6 +149,7 @@ services:
       GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
     volumes:
       - ./data/grafana:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
     security_opt: [no-new-privileges:true]
     labels:
       - "traefik.enable=true"
@@ -180,6 +184,8 @@ services:
     environment:
       TZ: ${TZ}
       DOZZLE_NO_ANALYTICS: "true"
+      DOZZLE_HOSTNAME: cloud01
+      DOZZLE_REMOTE_AGENT: onprem01.example.com:7007   # agent on onprem01
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     security_opt: [no-new-privileges:true]
@@ -194,27 +200,47 @@ services:
 
   # ── Mesh-only: dashboard ──────────────────────────────────────────────
 
-  homer:
-    image: b4bz/homer:latest
-    container_name: homer
+  homepage:
+    image: ghcr.io/gethomepage/homepage:latest
+    container_name: homepage
     restart: unless-stopped
-    user: ${PUID_PGID}
     environment:
       TZ: ${TZ}
+      PUID: "1000"
+      PGID: "1000"
+      HOMEPAGE_ALLOWED_HOSTS: dash.${CLOUD_DOMAIN}
+      HOMEPAGE_VAR_GRAFANA_USER: ${GRAFANA_USER}
+      HOMEPAGE_VAR_GRAFANA_PASSWORD: ${GRAFANA_PASSWORD}
+      HOMEPAGE_VAR_CROWDSEC_PASSWORD: ${CROWDSEC_HOMEPAGE_PASSWORD}
     volumes:
-      - ./data/homer:/www/assets
+      - ./data/homepage:/app/config
+    depends_on: [socket-proxy]
     security_opt: [no-new-privileges:true]
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.homer.rule=Host(`dash.${CLOUD_DOMAIN}`)"
-      - "traefik.http.routers.homer.entrypoints=websecure"
-      - "traefik.http.routers.homer.service=homer"
-      - "traefik.http.routers.homer.middlewares=hardening@file,mesh-only@file"
-      - "traefik.http.services.homer.loadbalancer.server.port=8080"
+      - "traefik.http.routers.dash.rule=Host(`dash.${CLOUD_DOMAIN}`)"
+      - "traefik.http.routers.dash.entrypoints=websecure"
+      - "traefik.http.routers.dash.service=dash"
+      - "traefik.http.routers.dash.middlewares=hardening@file,mesh-only@file"
+      - "traefik.http.services.dash.loadbalancer.server.port=3000"
       - "com.centurylinklabs.watchtower.enable=true"
 
-  # Sidecar that can see only Homer's config directory — edit the dashboard
-  # from a browser without SSH.
+  # Read-only Docker API for Homepage's container status. No published ports.
+  socket-proxy:
+    image: tecnativa/docker-socket-proxy:latest
+    container_name: socket-proxy
+    restart: unless-stopped
+    environment:
+      CONTAINERS: 1
+      POST: 0
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    security_opt: [no-new-privileges:true]
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # Sidecar that can see only Homepage's config directory — edit the
+  # dashboard from a browser without SSH.
   filebrowser:
     image: filebrowser/filebrowser:latest
     container_name: filebrowser
@@ -223,7 +249,7 @@ services:
     environment:
       TZ: ${TZ}
     volumes:
-      - ./data/homer:/srv
+      - ./data/homepage:/srv
       - ./data/filebrowser/database.db:/database.db   # touch it first
     security_opt: [no-new-privileges:true]
     labels:

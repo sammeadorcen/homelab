@@ -19,6 +19,7 @@ entryPoints:
           scheme: https
   websecure:
     address: ":443"
+    asDefault: true   # routers without an entrypoint never land on :8082
     http3: {}
     http:
       tls:
@@ -29,6 +30,11 @@ entryPoints:
           - main: "cloud.example.com"
             sans:
               - "*.cloud.example.com"
+
+  # Prometheus metrics. Not public: UFW allows it only from the Docker bridge
+  # and the mesh, and the Linode Cloud Firewall doesn't open it.
+  metrics:
+    address: ":8082"
 
 providers:
   docker:
@@ -58,6 +64,12 @@ accessLog:
   filePath: /var/log/traefik/access.log
   format: json
   bufferingSize: 100
+
+metrics:
+  prometheus:
+    entryPoint: metrics
+    addRoutersLabels: true
+    addServicesLabels: true
 
 experimental:
   plugins:

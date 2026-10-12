@@ -123,6 +123,7 @@ SSH has no public port on either box.
 | Vaultwarden is public | It has to work when the mesh is down | Client-side encryption, closed signups, 2FA, CrowdSec, no admin panel |
 | NetBird control plane is public | Devices must reach it to join | SSO allow-list + 2FA; CrowdSec on its routes |
 | Docker socket mounted in Traefik, Watchtower, Dozzle, Wings, cAdvisor | Required for discovery, updates and game servers | Read-only where possible; none of these are on a public route except Traefik itself |
+| Read-only Docker API (socket proxy) on onprem01's mesh IP | The dashboard on cloud01 shows container status for both boxes | `POST=0`, containers only; reachable by `admins` and `servers` only. Container details include env vars, so it's treated as admin-only |
 | Containers auto-update | Patch lag is the bigger risk for a one-person lab | Label opt-in, nightly backups before the update window |
 | Single admin, single region | It's a homelab | Off-box encrypted backups, documented rebuild |
 

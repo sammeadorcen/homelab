@@ -2,10 +2,13 @@ global:
   scrape_interval: 30s
   evaluation_interval: 30s
 
+# Every target carries a `host` label; dashboards, alerts and the Homepage
+# server cards all filter on it.
 scrape_configs:
   - job_name: prometheus
     static_configs:
       - targets: ["localhost:9090"]
+        labels: { host: cloud01 }
 
   - job_name: node
     static_configs:
@@ -15,9 +18,19 @@ scrape_configs:
       - targets: ["onprem01.example.com:9100"]
         labels: { host: onprem01 }
 
-  - job_name: docker
+  - job_name: cadvisor
     static_configs:
       - targets: ["cadvisor:8080"]
         labels: { host: cloud01 }
       - targets: ["onprem01.example.com:8081"]
         labels: { host: onprem01 }
+
+  - job_name: traefik
+    static_configs:
+      - targets: ["host.docker.internal:8082"]
+        labels: { host: cloud01 }
+
+  - job_name: crowdsec
+    static_configs:
+      - targets: ["crowdsec:6060"]
+        labels: { host: cloud01 }

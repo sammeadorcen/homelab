@@ -18,7 +18,9 @@ ufw allow in on wt0 comment 'NetBird mesh'
 # Check the real subnet first; a hand-made network ignores daemon.json pools:
 #   docker network inspect stack_default --format '{{range .IPAM.Config}}{{.Subnet}}{{end}}'
 BRIDGE=172.18.0.0/16
-ufw allow from "$BRIDGE" to any port 443 proto tcp comment 'containers to Traefik'
+ufw allow       from "$BRIDGE" to any port 443  proto tcp comment 'containers to Traefik'
+ufw route allow from "$BRIDGE" to any port 443  proto tcp comment 'containers to Traefik (fwd)'
+ufw allow       from "$BRIDGE" to any port 8082 proto tcp comment 'Prometheus to Traefik metrics'
 
 # No port 22 rule: SSH is mesh-only. Console (Lish) is the fallback.
 ufw --force enable

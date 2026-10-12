@@ -1,0 +1,14 @@
+- Accounts:
+    - Mail:
+        - abbr: ML
+          href: https://mail.google.com
+    - GitHub:
+        - abbr: GH
+          href: https://github.com
+- Infrastructure:
+    - Linode:
+        - abbr: LI
+          href: https://cloud.linode.com
+    - Cloudflare:
+        - abbr: CF
+          href: https://dash.cloudflare.com

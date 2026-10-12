@@ -52,6 +52,19 @@ Each of these cost at least an hour. Most of them fail silently.
 - **Wings keeps a stale Docker socket after a Docker upgrade.** Every operation
   fails with `connection refused` until Wings is restarted.
 
+## Monitoring
+
+- **Containers checking the box's own mesh-only routes arrive from the Docker
+  bridge, not the mesh.** Uptime Kuma and Homepage get a 403 until the bridge
+  subnet is in `mesh-only` (and UFW allows bridge → 443).
+- **`cscli machines add` without `-f -` overwrites CrowdSec's own credentials
+  file** and the agent stops talking to its API. Use `--auto -f -` and copy the
+  printed password.
+- **A new Traefik entry point catches every router that doesn't name one.**
+  Set `asDefault: true` on `websecure` before adding the `metrics` entry point.
+- **Monitoring that lives on cloud01 can't report cloud01's death.** An outside
+  heartbeat (healthchecks.io) covers it.
+
 ## NetBird
 
 - **`--management-url` is required on `netbird up`.** Without it the client joins

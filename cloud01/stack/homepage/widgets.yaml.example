@@ -1,0 +1,16 @@
+- search:
+    provider: google
+    focus: true        # type-to-search as soon as the page opens
+    target: _self
+- datetime:
+    text_size: xl
+    format:
+      dateStyle: long
+      timeStyle: short
+      hour12: true
+- openmeteo:
+    label: Home
+    latitude: 0.0      # your coordinates
+    longitude: 0.0
+    units: imperial
+    cache: 15

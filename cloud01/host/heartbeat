@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# /usr/local/bin/heartbeat — outside watchdog for cloud01 (chmod 700).
+# Pings healthchecks.io only if the public front door actually answers; if the
+# pings stop or /fail arrives, healthchecks.io alerts.
+set -uo pipefail
+URL="https://hc-ping.com/REPLACE-WITH-YOUR-UUID"
+if curl -fsS -m 10 -o /dev/null https://vault.cloud.example.com/alive \
+ && curl -fsS -m 10 -o /dev/null https://nb.cloud.example.com; then
+    curl -fsS -m 10 --retry 3 -o /dev/null "$URL"
+else
+    curl -fsS -m 10 --retry 3 -o /dev/null "$URL/fail"
+fi

@@ -145,6 +145,37 @@ services:
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
 
+  # Dozzle agent: cloud01's Dozzle shows this box's logs through it.
+  dozzle-agent:
+    image: amir20/dozzle:latest
+    container_name: dozzle-agent
+    restart: unless-stopped
+    command: agent
+    environment:
+      DOZZLE_HOSTNAME: onprem01
+    ports:
+      - "${MESH_IP}:7007:7007"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # Read-only Docker API for the dashboard on cloud01. Mesh IP only; POST
+  # requests (start/stop/create) are refused.
+  socket-proxy:
+    image: tecnativa/docker-socket-proxy:latest
+    container_name: socket-proxy
+    restart: unless-stopped
+    environment:
+      CONTAINERS: 1
+      POST: 0
+    ports:
+      - "${MESH_IP}:2375:2375"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
   watchtower:
     image: nickfedor/watchtower:latest
     container_name: watchtower

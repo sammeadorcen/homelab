@@ -1,0 +1,7 @@
+# Read-only Docker socket proxies (docker-socket-proxy, CONTAINERS=1, POST=0)
+cloud01:
+  host: socket-proxy           # same compose network, not published
+  port: 2375
+onprem01:
+  host: onprem01.example.com   # resolves to onprem01's mesh IP
+  port: 2375

@@ -80,7 +80,7 @@
               <span class="chip">Grafana</span>
               <span class="chip">Uptime Kuma</span>
               <span class="chip">Dozzle</span>
-              <span class="chip">Homer</span>
+              <span class="chip">Homepage</span>
               <span class="chip">Filebrowser</span>
               <span class="chip">Watchtower</span>
             </div>
@@ -143,7 +143,7 @@
               <tr><td>node-exporter, cAdvisor</td><td>both</td><td><span class="pill mesh">Mesh · admins</span></td><td>Host and container metrics</td></tr>
               <tr><td>Uptime Kuma</td><td>cloud01</td><td><span class="pill mesh">Mesh · admins</span></td><td>Up/down checks</td></tr>
               <tr><td>Dozzle</td><td>cloud01</td><td><span class="pill mesh">Mesh · admins</span></td><td>Live container logs in the browser</td></tr>
-              <tr><td>Homer + Filebrowser</td><td>cloud01</td><td><span class="pill mesh">Mesh · admins</span></td><td>Start page, editable from the browser through a sidecar that can only see its config</td></tr>
+              <tr><td>Homepage + Filebrowser</td><td>cloud01</td><td><span class="pill mesh">Mesh · admins</span></td><td>Start page with live status and stats for both servers, editable from the browser through a sidecar that can only see its config</td></tr>
               <tr><td>Pelican Panel + Wings</td><td>onprem01</td><td><span class="pill mesh">Mesh · admins</span></td><td>Game server management, both in Docker</td></tr>
               <tr><td>Minecraft (Fabric)</td><td>onprem01</td><td><span class="pill friends">Mesh · everyone</span></td><td>Java server for friends, whitelist enforced, ~25 performance and technical mods</td></tr>
               <tr><td>Stremio server</td><td>onprem01</td><td><span class="pill mesh">Mesh · media</span></td><td>Streaming backend for the Apple TV (being replaced, see roadmap)</td></tr>
@@ -209,7 +209,7 @@
       <section class="section" id="ops">
         <header><span class="label">08</span><h2>Monitoring &amp; backups</h2></header>
         <div class="prose">
-          <p>Prometheus on cloud01 scrapes node-exporter and cAdvisor on both machines, reaching the home box over the mesh. Grafana holds 90 days of history, Uptime Kuma watches the Panel and the Minecraft port, and Dozzle shows container logs without an SSH session. Homer is the start page that links it all.</p>
+          <p>Prometheus on cloud01 scrapes node-exporter and cAdvisor on both machines, plus Traefik and CrowdSec, reaching the home box over the mesh. Grafana holds 90 days of history and sends alerts to Discord when a disk passes 85&nbsp;%, memory or CPU stays above 90&nbsp;%, or a target stops reporting. Uptime Kuma checks every service each minute and alerts on its own. Dozzle shows container logs for both boxes in one page. Homepage is the start page that ties it together, with live CPU, RAM and disk for each server pulled from Prometheus.</p><p>Because all of that runs on cloud01, cloud01 also checks in with an outside service every five minutes. If the check-ins stop, or the public front door stops answering, I get an alert from outside my own infrastructure.</p>
           <p>Each box backs up nightly at 03:30 with restic to its own object-storage bucket, before Watchtower's update window. Backups are encrypted before they leave the machine and kept for 14 days, 8 weeks and 12 months, with a weekly integrity check and a dead-man ping that alerts if a night is missed. They include the Vaultwarden database, NetBird's encryption key together with its data, the Pelican database, the Wings node token and every game server's files.</p>
         </div>
       </section>
@@ -310,7 +310,7 @@
             <tbody>
               <tr><td>Vaultwarden is public</td><td>It has to work when the mesh is down</td><td>Client-side encryption, closed signups, 2FA, CrowdSec, no admin panel</td></tr>
               <tr><td>The NetBird control plane is public</td><td>Devices have to reach it to join</td><td>SSO allow-list with 2FA, CrowdSec on its routes</td></tr>
-              <tr><td>Docker socket mounted in a few containers</td><td>Needed for routing, updates, logs and game servers</td><td>Read-only where possible; only the proxy is on a public route</td></tr>
+              <tr><td>Docker socket mounted in a few containers</td><td>Needed for routing, updates, logs and game servers</td><td>Read-only where possible; the dashboard goes through a socket proxy that refuses anything but reading container status; only the proxy is on a public route</td></tr>
               <tr><td>Everything auto-updates</td><td>Missed patches are the bigger risk</td><td>Opt-in labels, backups before the update window</td></tr>
               <tr><td>One admin, one region</td><td>It's a homelab</td><td>Encrypted off-box backups and a documented rebuild</td></tr>
             </tbody>

@@ -18,7 +18,7 @@ Write-up: **https://meador.dev/docs** · Security model: [`docs/security.md`](do
                │  Vaultwarden (public) │
                │  Grafana · Prometheus │
                │  Uptime Kuma · Dozzle │  mesh-only
-               │  Homer · Filebrowser  │
+               │  Homepage · Files     │
                └───────────┬───────────┘
                            │  WireGuard mesh (NetBird)
           ┌────────────────┼─────────────────┐
@@ -41,7 +41,7 @@ Write-up: **https://meador.dev/docs** · Security model: [`docs/security.md`](do
 | `onprem01/wings/` | Wings config template (the real one holds the node token) |
 | `onprem01/host/` | UFW, Docker-waits-for-mesh drop-in, conditional reboot timer |
 | `onprem01/minecraft/` | `server.properties` and the mod list |
-| `docs/` | Architecture, access policies, security model, lessons learned |
+| `docs/` | Architecture, access policies, monitoring, security model, lessons learned |
 | `site/` | The static site at meador.dev (plain HTML, deployed on Cloudflare Workers) |
 
 ## Stack
@@ -49,7 +49,7 @@ Write-up: **https://meador.dev/docs** · Security model: [`docs/security.md`](do
 Debian 13 · Docker Compose · Traefik v3.6 (Cloudflare DNS-01 wildcard certs) ·
 NetBird (self-hosted, embedded IdP + Google SSO) · CrowdSec · fail2ban · UFW ·
 Vaultwarden · Prometheus · Grafana · node-exporter · cAdvisor · Uptime Kuma ·
-Dozzle · Homer · Filebrowser · Pelican Panel + Wings · Fabric Minecraft ·
+Dozzle · Homepage · Filebrowser · Pelican Panel + Wings · Fabric Minecraft ·
 Watchtower · unattended-upgrades · restic
 
 ## Using it
