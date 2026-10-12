@@ -7,10 +7,10 @@ read-only Docker socket proxy on onprem01. Nothing here is public.
 |---|---|---|---|
 | Homepage | cloud01, `dash.<cloud domain>` | Start page: links, container status for both boxes, per-server CPU/RAM/disk from Prometheus, Uptime Kuma, CrowdSec, Traefik, Minecraft widgets | — |
 | Prometheus | cloud01 | Scrapes node-exporter + cAdvisor (both boxes), Traefik (`:8082`), CrowdSec (`:6060`) every 30 s; 90-day retention | — |
-| Grafana | cloud01 | Dashboards + alert rules | Discord |
-| Uptime Kuma | cloud01 | HTTP / GameDig / TCP checks every 60 s; status page `homelab` feeds Homepage | Discord |
+| Grafana | cloud01 | Dashboards + alert rules | Email (Workspace SMTP) |
+| Uptime Kuma | cloud01 | HTTP / GameDig / TCP checks every 60 s; status page `homelab` feeds Homepage | Email (Workspace SMTP) |
 | Dozzle + agent | UI cloud01, agent onprem01 `:7007` (mesh IP) | Live logs for both boxes | — |
-| healthchecks.io | outside | `heartbeat` timer every 5 min, only if Vaultwarden and NetBird answer | Email / Discord |
+| healthchecks.io | outside | `heartbeat` timer every 5 min, only if Vaultwarden and NetBird answer | Email |
 
 ## Grafana
 
