@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# /usr/local/bin/docker-socket-refresh
+# Docker runs with live-restore, so containers keep running when the daemon
+# restarts (e.g. an unattended Docker upgrade). The daemon recreates
+# /var/run/docker.sock, but containers that bind-mounted the old socket file
+# keep pointing at the dead one: Watchtower, Traefik, Dozzle, Wings and the
+# socket proxies all silently lose Docker. Restart exactly those containers.
+set -uo pipefail
+sleep 20
+for id in $(docker ps -q); do
+    if docker inspect --format '{{range .Mounts}}{{.Source}}{{"\n"}}{{end}}' "$id" \
+        | grep -qE '^/(var/)?run/docker\.sock$'; then
+        name=$(docker inspect --format '{{.Name}}' "$id")
+        echo "refreshing ${name#/}"
+        docker restart "$id" >/dev/null
+    fi
+done

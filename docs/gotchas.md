@@ -49,8 +49,12 @@ Each of these cost at least an hour. Most of them fail silently.
 - **"does not match node token_id" was CORS.** The node heart and console are
   direct browser → Wings calls. `allowed_origins` fixes it, and
   `ignore_panel_config_updates: true` stops the Panel overwriting it on the next save.
-- **Wings keeps a stale Docker socket after a Docker upgrade.** Every operation
-  fails with `connection refused` until Wings is restarted.
+- **Every container that mounts `docker.sock` goes stale after a Docker upgrade.**
+  With `live-restore`, containers survive the daemon restart, but the daemon
+  recreates the socket and their bind mount still points at the old one. Wings
+  shows a red node, Watchtower logs "Docker daemon unavailable" every night and
+  never updates anything. `docker-socket-refresh` (a systemd unit wanted by
+  `docker.service`) restarts exactly those containers each time Docker starts.
 
 ## Monitoring
 

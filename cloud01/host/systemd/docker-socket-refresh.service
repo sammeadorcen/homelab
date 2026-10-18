@@ -1,0 +1,11 @@
+[Unit]
+Description=Restart containers that mount docker.sock whenever Docker (re)starts
+After=docker.service
+BindsTo=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/docker-socket-refresh
+
+[Install]
+WantedBy=docker.service
