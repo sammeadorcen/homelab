@@ -19,6 +19,8 @@
 
 - Servers:
     - cloud01:
+        href: https://manage.cloud.example.com        # Cockpit
+        siteMonitor: https://manage.cloud.example.com
         icon: mdi-cloud-outline
         description: Cloud VPS · mesh control plane and public edge
         widget:
@@ -39,6 +41,8 @@
               query: (time() - node_boot_time_seconds{host="cloud01"}) / 86400
               format: { type: number, suffix: " d", options: { maximumFractionDigits: 1 } }
     - onprem01:
+        href: https://manage.example.com              # Cockpit
+        siteMonitor: https://manage.example.com
         icon: mdi-home-outline
         description: Home · game servers and media
         widget:
@@ -116,7 +120,7 @@
           password: "{{HOMEPAGE_VAR_GRAFANA_PASSWORD}}"
     - Prometheus:
         icon: prometheus.png
-        href: https://grafana.cloud.example.com/explore
+        href: https://prometheus.cloud.example.com
         description: Metrics collection
         server: cloud01
         container: prometheus

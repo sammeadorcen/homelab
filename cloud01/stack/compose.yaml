@@ -108,6 +108,12 @@ services:
       - ./data/prometheus:/prometheus
     security_opt: [no-new-privileges:true]
     labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.prometheus.rule=Host(`prometheus.${CLOUD_DOMAIN}`)"
+      - "traefik.http.routers.prometheus.entrypoints=websecure"
+      - "traefik.http.routers.prometheus.service=prometheus"
+      - "traefik.http.routers.prometheus.middlewares=hardening@file,mesh-only@file"
+      - "traefik.http.services.prometheus.loadbalancer.server.port=9090"
       - "com.centurylinklabs.watchtower.enable=true"
 
   node-exporter:
