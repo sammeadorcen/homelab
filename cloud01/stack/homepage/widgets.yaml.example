@@ -1,5 +1,5 @@
 - search:
-    provider: google
+    provider: duckduckgo
     focus: true        # type-to-search as soon as the page opens
     target: _self
 - datetime:
