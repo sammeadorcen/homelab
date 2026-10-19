@@ -69,6 +69,10 @@ Each of these cost at least an hour. Most of them fail silently.
 - **Monitoring that lives on cloud01 can't report cloud01's death.** An outside
   heartbeat (healthchecks.io) covers it.
 
+- **Watchtower's rolling restart refuses to run if any container has
+  `depends_on`.** It logs "Rolling restart compatibility validation failed" once
+  at startup and then never updates anything. Keep `depends_on` out of the stack.
+
 ## NetBird
 
 - **`--management-url` is required on `netbird up`.** Without it the client joins

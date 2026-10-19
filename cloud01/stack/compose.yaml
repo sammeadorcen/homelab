@@ -229,7 +229,6 @@ services:
       HOMEPAGE_VAR_CALENDAR_URL: ${CALENDAR_ICAL_URL}
     volumes:
       - ./data/homepage:/app/config
-    depends_on: [socket-proxy]
     security_opt: [no-new-privileges:true]
     labels:
       - "traefik.enable=true"
