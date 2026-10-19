@@ -7,6 +7,9 @@ target: _self
 hideVersion: true
 useEqualHeights: true
 layout:
+  Calendar:
+    style: row
+    columns: 1
   Servers:
     style: row
     columns: 2

@@ -2,6 +2,21 @@
 # containers directly over the compose network; https://…cloud.example.com
 # URLs go through Traefik and need the bridge subnet in mesh-only.
 
+- Calendar:
+    - Upcoming:
+        icon: mdi-calendar-month-outline
+        widget:
+          type: calendar
+          view: agenda
+          maxEvents: 8
+          showTime: true
+          timezone: America/Chicago
+          integrations:
+            - type: ical
+              url: "{{HOMEPAGE_VAR_CALENDAR_URL}}"   # secret iCal link, from .env
+              name: Calendar
+              color: blue
+
 - Servers:
     - cloud01:
         icon: mdi-cloud-outline
