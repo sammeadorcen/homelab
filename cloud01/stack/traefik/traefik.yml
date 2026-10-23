@@ -75,4 +75,4 @@ experimental:
   plugins:
     crowdsec-bouncer:
       moduleName: github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin
-      version: v1.3.5   # check releases for the current tag
+      version: v1.8.1   # plugins never auto-update: check releases every few months

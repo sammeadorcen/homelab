@@ -97,8 +97,9 @@ SSH has no public port on either box.
 - **unattended-upgrades** for Debian, Docker and the NetBird client on both boxes.
   cloud01 reboots itself at 04:30 when a kernel needs it. onprem01 reboots weekly
   only if required *and* no players are connected.
-- **Watchtower** at 04:00 for opted-in containers only. Wings is pinned to manual
-  updates so it stays compatible with the Panel.
+- **Watchtower** at 04:00 for opted-in containers only, including Wings and the
+  Panel together so their versions never drift apart. Traefik tracks the `v3`
+  tag; the CrowdSec plugin version is bumped by hand.
 
 ### 8. Secrets
 - Every token and password lives in a `chmod 600` file on the host, never in

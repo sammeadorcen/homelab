@@ -91,7 +91,8 @@ services:
       - "traefik.http.routers.wings.service=wings"
       - "traefik.http.routers.wings.middlewares=hardening@file"
       - "traefik.http.services.wings.loadbalancer.server.port=8080"
-      # No Watchtower label: Wings is updated by hand, together with the Panel.
+      # Updated nightly together with the Panel so the two versions never drift.
+      - "com.centurylinklabs.watchtower.enable=true"
 
   # ── Media (being replaced by local Jellyfin) ──────────────────────────
 

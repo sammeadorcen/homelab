@@ -57,7 +57,7 @@ Mail records on the apex are separate and untouched.
 | cloud01 reboot | unattended-upgrades | 04:30 if needed |
 | onprem01 reboot | `maybe-reboot` timer | Tue 05:00 if needed and no players online |
 | Containers (opt-in) | Watchtower | 04:00 nightly |
-| Wings | By hand, with the Panel | When the Panel updates |
+| CrowdSec Traefik plugin | By hand (plugins never auto-update) | Every few months |
 
 ## Monitoring
 
