@@ -110,7 +110,7 @@ SSH has no public port on either box.
   stored offline, since the backups exist to restore the vault itself.
 
 ### 9. Recovery
-- Nightly **restic** backups to S3-compatible object storage, encrypted
+- Nightly **restic** backups to Backblaze B2 (a different provider from the VPS), encrypted
   client-side, 14 daily / 8 weekly / 12 monthly, a weekly 5 % data check, and a
   dead-man ping that alerts if a night is missed.
 - NetBird's encryption key and database are backed up together; the Wings node
