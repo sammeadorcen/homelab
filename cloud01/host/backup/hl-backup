@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+# Nightly backup for cloud01 -> its own object-storage bucket (restic).
+set -Eeuo pipefail
+source /root/restic/env
+
+STACK=/srv/stack
+DUMPS=/var/backups/hl-dumps
+
+fail() {
+    echo "BACKUP FAILED at line $1" >&2
+    curl -fsS -m 10 --retry 3 -o /dev/null "$HC_URL/fail" || true
+    exit 1
+}
+trap 'fail $LINENO' ERR
+curl -fsS -m 10 --retry 3 -o /dev/null "$HC_URL/start" || true
+
+used=$(df --output=pcent / | tail -1 | tr -dc '0-9')
+if [ "$used" -ge 90 ]; then echo "Disk at ${used}%, not backing up" >&2; fail $LINENO; fi
+
+rm -rf "$DUMPS"; install -d -m 700 "$DUMPS"
+
+# Consistent copies of live SQLite databases (safe while the apps run).
+snap() { if [ -f "$1" ]; then sqlite3 "$1" ".backup '$DUMPS/$2'"; fi; }
+snap "$STACK/data/vaultwarden/db.sqlite3" vaultwarden.sqlite3
+snap "$STACK/data/grafana/grafana.db"     grafana.db
+snap "$STACK/data/uptimekuma/kuma.db"     kuma.db
+
+# NetBird keeps its database in a Docker volume. config.yaml in /srv/netbird
+# holds the key that encrypts it: the two are only useful together.
+for vol in $(docker volume ls -q | grep -i netbird); do
+    mp=$(docker volume inspect -f '{{.Mountpoint}}' "$vol")
+    for db in $(find "$mp" -maxdepth 3 -name '*.db' 2>/dev/null); do
+        sqlite3 "$db" ".backup '$DUMPS/netbird-$vol-$(basename "$db")'"
+    done
+    # The databases are copied above; tar the rest. Exit 1 only means
+    # "a file changed while reading", which is harmless here.
+    tar czf "$DUMPS/netbird-$vol.tgz" --exclude='*.db' --exclude='*.db-*' \
+        --warning=no-file-changed -C "$mp" . || [ $? -eq 1 ]
+done
+
+restic backup --tag auto --exclude-caches \
+    --exclude "$STACK/data/vaultwarden/db.sqlite3*" \
+    --exclude "$STACK/data/vaultwarden/icon_cache" \
+    --exclude "$STACK/data/grafana/grafana.db*" \
+    --exclude "$STACK/data/uptimekuma/kuma.db*" \
+    --exclude "$STACK/data/traefik" \
+    --exclude "$STACK/data/traefik-logs" \
+    --exclude "$STACK/data/prometheus" \
+    --exclude "$STACK/data/crowdsec/data" \
+    "$STACK" /srv/netbird "$DUMPS" \
+    /etc/ufw /etc/systemd/system /etc/apt/apt.conf.d /etc/docker \
+    /etc/ssh/sshd_config.d /etc/fail2ban /usr/local/bin
+
+restic forget --tag auto --prune --keep-daily 14 --keep-weekly 8 --keep-monthly 12
+
+if [ "$(date +%u)" = 7 ]; then restic check --read-data-subset=5%; fi
+
+rm -rf "$DUMPS"
+curl -fsS -m 10 --retry 3 -o /dev/null "$HC_URL" || true
+echo "Backup completed $(date -Is)"

@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# /usr/local/bin/hl-restic — restic with this server's credentials loaded.
+set -euo pipefail
+source /root/restic/env
+exec restic "$@"

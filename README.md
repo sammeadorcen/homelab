@@ -36,10 +36,10 @@ Write-up: **https://meador.dev/docs** · Security model: [`docs/security.md`](do
 |---|---|
 | `cloud01/stack/` | Compose stack for the VPS: Traefik, Vaultwarden, CrowdSec, monitoring, dashboard, Watchtower |
 | `cloud01/netbird/` | How the NetBird control plane is installed and wired into Traefik |
-| `cloud01/host/` | UFW, SSH, fail2ban, sysctl, unattended-upgrades, Docker daemon, backup timer |
+| `cloud01/host/` | UFW, SSH, fail2ban, sysctl, unattended-upgrades, Docker daemon, restic backup script and timer |
 | `onprem01/stack/` | Compose stack for the home server: Traefik, Pelican Panel, Wings, exporters |
 | `onprem01/wings/` | Wings config template (the real one holds the node token) |
-| `onprem01/host/` | UFW, Docker-waits-for-mesh drop-in, conditional reboot timer |
+| `onprem01/host/` | UFW, Docker-waits-for-mesh drop-in, conditional reboot timer, restic backup script and timer |
 | `onprem01/minecraft/` | `server.properties` and the mod list |
 | `docs/` | Architecture, access policies, monitoring, security model, lessons learned |
 | `site/` | The static site at meador.dev (plain HTML, deployed on Cloudflare Workers) |

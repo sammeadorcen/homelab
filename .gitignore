@@ -4,9 +4,9 @@
 !*.env.example
 **/vaultwarden/vaultwarden.env
 **/traefik/dynamic/crowdsec.yml
-**/backup/restic-password
-**/backup/backup.env
-**/backup/dumps/
+**/restic/password
+**/restic/env
+**/hl-dumps/
 **/data/
 acme.json
 config.yaml

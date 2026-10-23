@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# Nightly backup for onprem01 -> its own object-storage bucket (restic).
+set -Eeuo pipefail
+source /root/restic/env
+
+STACK=/srv/stack
+DUMPS=/var/backups/hl-dumps
+VOLUMES=/var/lib/pelican/volumes
+
+fail() {
+    echo "BACKUP FAILED at line $1" >&2
+    curl -fsS -m 10 --retry 3 -o /dev/null "$HC_URL/fail" || true
+    exit 1
+}
+trap 'fail $LINENO' ERR
+curl -fsS -m 10 --retry 3 -o /dev/null "$HC_URL/start" || true
+
+used=$(df --output=pcent / | tail -1 | tr -dc '0-9')
+if [ "$used" -ge 90 ]; then echo "Disk at ${used}%, not backing up" >&2; fail $LINENO; fi
+
+rm -rf "$DUMPS"; install -d -m 700 "$DUMPS"
+
+# Pelican's database, copied consistently while the Panel runs.
+if [ -f "$STACK/data/pelican/database/database.sqlite" ]; then
+    sqlite3 "$STACK/data/pelican/database/database.sqlite" ".backup '$DUMPS/pelican.sqlite'"
+fi
+
+# --limit-upload (KiB/s) keeps the home upload usable during the first big run.
+restic backup --tag auto --exclude-caches --limit-upload 2500 \
+    --exclude "$STACK/data/pelican/database/database.sqlite*" \
+    --exclude "$STACK/data/traefik" \
+    --exclude "$STACK/data/stremio" \
+    --exclude "$VOLUMES/*/bluemap/web/maps" \
+    --exclude "$VOLUMES/*/logs" \
+    --exclude "$VOLUMES/*/crash-reports" \
+    "$STACK" "$DUMPS" /etc/pelican "$VOLUMES" \
+    /etc/ufw /etc/systemd/system /etc/apt/apt.conf.d /etc/docker \
+    /usr/local/bin
+
+restic forget --tag auto --prune --keep-daily 14 --keep-weekly 8 --keep-monthly 12
+
+if [ "$(date +%u)" = 7 ]; then restic check --read-data-subset=5%; fi
+
+rm -rf "$DUMPS"
+curl -fsS -m 10 --retry 3 -o /dev/null "$HC_URL" || true
+echo "Backup completed $(date -Is)"

@@ -1,12 +1,10 @@
 [Unit]
-Description=Nightly backup to object storage
+Description=Nightly restic backup
 After=network-online.target docker.service
 Wants=network-online.target
 
 [Service]
 Type=oneshot
-User=youruser
-Group=youruser
-ExecStart=/srv/stack/backup/backup.sh
-Nice=15
+ExecStart=/usr/local/bin/hl-backup
+Nice=10
 IOSchedulingClass=idle
