@@ -46,7 +46,7 @@ Write-up: **https://meador.dev/docs** · Security model: [`docs/security.md`](do
 
 ## Stack
 
-Debian 13 · Docker Compose · Traefik v3.6 (Cloudflare DNS-01 wildcard certs) ·
+Debian 13 · Docker Compose · Traefik v3.7 (Cloudflare DNS-01 wildcard certs) ·
 NetBird (self-hosted, embedded IdP + Google SSO) · CrowdSec · fail2ban · UFW ·
 Vaultwarden · Prometheus · Grafana · node-exporter · cAdvisor · Uptime Kuma ·
 Dozzle · Homepage · Filebrowser · Pelican Panel + Wings · Fabric Minecraft ·
