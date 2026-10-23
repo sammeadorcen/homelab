@@ -18,7 +18,7 @@ networks:
 services:
 
   traefik:
-    image: traefik:v3.7
+    image: traefik:v3
     container_name: traefik
     restart: unless-stopped
     # Host networking, not published ports. Published ports NAT every

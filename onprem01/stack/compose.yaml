@@ -13,7 +13,7 @@ networks:
 services:
 
   traefik:
-    image: traefik:v3.7
+    image: traefik:v3
     container_name: traefik
     restart: unless-stopped
     # Listens on *:443; UFW only admits wt0 (mesh) and the Docker bridge.

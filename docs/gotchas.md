@@ -10,12 +10,11 @@ Each of these cost at least an hour. Most of them fail silently.
 - **`CLOUDFLARE_DNS_API_TOKEN`** is the exact env var name the ACME library reads.
 - **Wildcard certificates.** Per-host certs are re-requested together on restart
   and trip Cloudflare's API rate limit (`429`), leaving you with no certs for an hour.
-- **Pin Traefik to a supported minor (`traefik:v3.7`), not `latest`.** Releases
-  before v3.6 can't negotiate with Docker Engine 29 and never see a container.
-  v3.6 lost security support on 2026-08-16, so it never got the 3.7.12+ fixes.
-  Watchtower keeps you on the newest patch of the pinned minor; bump the minor by
-  hand roughly twice a year after reading the migration notes. `latest` would
-  jump to a new major on its own.
+- **Use the `traefik:v3` tag, not a minor pin or `latest`.** Releases before v3.6
+  can't negotiate with Docker Engine 29 and never see a container. A minor pin
+  (`v3.6`) quietly goes stale: 3.6 lost security support on 2026-08-16 and never
+  got the 3.7.12+ fixes. `v3` follows every 3.x release, patches and new minors,
+  so Watchtower keeps it current; `latest` would also jump to a new major.
 - **Middlewares from the file provider are `name@file`**, not `@docker`.
 - **A placeholder like `100.x.x.x` left in an address field** is treated as a
   hostname and fails with `no such host`.
