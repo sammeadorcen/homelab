@@ -51,7 +51,7 @@ SSH has no public port on either box.
   required on each of those accounts.
 - **Default allow-all policy deleted.** Four explicit policies (see
   [netbird-policies.md](netbird-policies.md)). Friends land in `All`, which can
-  reach TCP 25565 on the servers and nothing else.
+  reach TCP 25565 on onprem01 and nothing else.
 - A local break-glass admin exists in NetBird's own user store in case Google is
   unavailable.
 
