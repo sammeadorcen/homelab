@@ -26,7 +26,7 @@ Write-up: **https://meador.dev/docs** · Security model: [`docs/security.md`](do
      my devices       friends' PCs      onprem01 (home)
      (admins)         (Minecraft only)  Pelican + Wings
                                         Minecraft (Fabric)
-                                        Stremio · exporters
+                                        AIOStreams · exporters
                                         no inbound ports at all
 ```
 

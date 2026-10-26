@@ -28,7 +28,8 @@ exporter (14282), Traefik Official Standalone (17346).
 ## Uptime Kuma monitors
 
 Vaultwarden (`/alive`), NetBird, Grafana (`/api/health`), Traefik dashboard,
-Dozzle, Homepage, Pelican Panel, Wings (`/api/system`, 401 accepted), Stremio,
+Dozzle, Homepage, Pelican Panel, Wings (`/api/system`, 401 accepted), AIOStreams (`/api/v1/status`),
+AIOMetadata (`/health`),
 Minecraft (GameDig), onprem01 (TCP 9100).
 
 ## Plumbing that makes it work

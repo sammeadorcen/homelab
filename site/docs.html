@@ -102,7 +102,7 @@
                 <span class="chip">Pelican Panel</span>
                 <span class="chip">Wings</span>
                 <span class="chip">Minecraft</span>
-                <span class="chip">Stremio</span>
+                <span class="chip">AIOStreams</span>
                 <span class="chip">exporters</span>
               </div>
             </div>
@@ -146,7 +146,8 @@
               <tr><td>Homepage + Filebrowser</td><td>cloud01</td><td><span class="pill mesh">Mesh · admins</span></td><td>Start page with live status and stats for both servers, editable from the browser through a sidecar that can only see its config</td></tr>
               <tr><td>Pelican Panel + Wings</td><td>onprem01</td><td><span class="pill mesh">Mesh · admins</span></td><td>Game server management, both in Docker</td></tr>
               <tr><td>Minecraft (Fabric)</td><td>onprem01</td><td><span class="pill friends">Mesh · everyone</span></td><td>Java server for friends, whitelist enforced, ~25 performance and technical mods</td></tr>
-              <tr><td>Stremio server</td><td>onprem01</td><td><span class="pill mesh">Mesh · media</span></td><td>Streaming backend for the Apple TV (being replaced, see roadmap)</td></tr>
+              <tr><td>AIOStreams</td><td>onprem01</td><td><span class="pill mesh">Mesh · media</span></td><td>Stream search and filtering, served to the Apple TV as a Jellyfin-compatible server (being replaced, see roadmap)</td></tr>
+              <tr><td>AIOMetadata</td><td>onprem01</td><td><span class="pill mesh">Mesh · media</span></td><td>Catalogs and artwork from TMDB, with a Redis cache</td></tr>
               <tr><td>Watchtower</td><td>both</td><td>none</td><td>Nightly image updates for containers that opt in</td></tr>
             </tbody>
           </table>
@@ -181,7 +182,7 @@
               <tr><td>admins-everything</td><td>admins → All</td><td>Everything, both ways</td></tr>
               <tr><td>servers-to-servers</td><td>servers → servers</td><td>Everything (metrics scraping)</td></tr>
               <tr><td>everyone-minecraft</td><td>All → game-host (onprem01)</td><td>TCP 25565, one way</td></tr>
-              <tr><td>media-to-stremio</td><td>media → servers</td><td>TCP 443, one way</td></tr>
+              <tr><td>media-to-onprem01</td><td>media → game-host</td><td>TCP 443, one way</td></tr>
             </tbody>
           </table>
         </div>

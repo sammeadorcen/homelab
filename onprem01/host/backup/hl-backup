@@ -20,16 +20,19 @@ if [ "$used" -ge 90 ]; then echo "Disk at ${used}%, not backing up" >&2; fail $L
 
 rm -rf "$DUMPS"; install -d -m 700 "$DUMPS"
 
-# Pelican's database, copied consistently while the Panel runs.
-if [ -f "$STACK/data/pelican/database/database.sqlite" ]; then
-    sqlite3 "$STACK/data/pelican/database/database.sqlite" ".backup '$DUMPS/pelican.sqlite'"
-fi
+# Consistent copies of live SQLite databases (safe while the apps run).
+snap() { if [ -f "$1" ]; then sqlite3 "$1" ".backup '$DUMPS/$2'"; fi; }
+snap "$STACK/data/pelican/database/database.sqlite" pelican.sqlite
+snap "$STACK/data/aiostreams/db.sqlite"             aiostreams.sqlite    # settings + watch history
+snap "$STACK/data/aiometadata/db.sqlite"            aiometadata.sqlite   # catalog config
 
 # --limit-upload (KiB/s) keeps the home upload usable during the first big run.
 restic backup --tag auto --exclude-caches --limit-upload 2500 \
     --exclude "$STACK/data/pelican/database/database.sqlite*" \
     --exclude "$STACK/data/traefik" \
-    --exclude "$STACK/data/stremio" \
+    --exclude "$STACK/data/aiostreams" \
+    --exclude "$STACK/data/aiometadata" \
+    --exclude "$STACK/data/aiometadata-redis" \
     --exclude "$VOLUMES/*/bluemap/web/maps" \
     --exclude "$VOLUMES/*/logs" \
     --exclude "$VOLUMES/*/crash-reports" \

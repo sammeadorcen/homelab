@@ -153,12 +153,20 @@
         description: Runs the game servers
         server: onprem01
         container: wings
-    - Stremio:
-        icon: stremio.png
-        href: https://stremio.example.com
-        description: Streaming server
+    - AIOStreams:
+        icon: mdi-play-box-multiple-outline
+        href: https://aio.example.com
+        description: Streams, filters, Apple TV server
+        siteMonitor: https://aio.example.com/api/v1/status
         server: onprem01
-        container: stremio
+        container: aiostreams
+    - AIOMetadata:
+        icon: mdi-movie-search-outline
+        href: https://meta.example.com/configure
+        description: Posters and catalogs (TMDB)
+        siteMonitor: https://meta.example.com/health
+        server: onprem01
+        container: aiometadata
 
 - Tools:
     - Edit this page:

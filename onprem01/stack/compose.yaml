@@ -94,24 +94,73 @@ services:
       # Updated nightly together with the Panel so the two versions never drift.
       - "com.centurylinklabs.watchtower.enable=true"
 
-  # ── Media (being replaced by local Jellyfin) ──────────────────────────
+  # ── Media: AIOStreams + AIOMetadata (NetBird only, no published ports) ─
 
-  stremio:
-    image: stremio/server:latest
-    container_name: stremio
+  aiostreams:
+    image: ghcr.io/viren070/aiostreams:latest
+    container_name: aiostreams
     restart: unless-stopped
     environment:
       TZ: ${TZ}
-      NO_CORS: "1"
+      BASE_URL: https://aio.${DOMAIN}
+      SECRET_KEY: ${AIO_SECRET_KEY}          # never change after first start
+      DATABASE_URI: sqlite://./data/db.sqlite
+      AIOSTREAMS_AUTH: sam:${AIO_ADMIN_PASSWORD}
+    # meta.<domain> resolves to the mesh IP, which a container can't reach.
+    # Send it to the bridge gateway, where Traefik listens.
+    extra_hosts:
+      - "meta.${DOMAIN}:${BRIDGE_GATEWAY}"
+      - "aio.${DOMAIN}:${BRIDGE_GATEWAY}"
     volumes:
-      - ./data/stremio:/root/.stremio-server
+      - ./data/aiostreams:/app/data
+    security_opt: [no-new-privileges:true]
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.stremio.rule=Host(`stremio.${DOMAIN}`)"
-      - "traefik.http.routers.stremio.entrypoints=websecure"
-      - "traefik.http.routers.stremio.service=stremio"
-      - "traefik.http.routers.stremio.middlewares=hardening@file,mesh-only@file"
-      - "traefik.http.services.stremio.loadbalancer.server.port=11470"
+      - "traefik.http.routers.aio.rule=Host(`aio.${DOMAIN}`)"
+      - "traefik.http.routers.aio.entrypoints=websecure"
+      - "traefik.http.routers.aio.service=aio"
+      - "traefik.http.routers.aio.middlewares=hardening@file,mesh-only@file"
+      - "traefik.http.services.aio.loadbalancer.server.port=3000"
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  aiometadata:
+    image: ghcr.io/cedya77/aiometadata:latest
+    container_name: aiometadata
+    restart: unless-stopped
+    init: true
+    # No depends_on: Watchtower's rolling restart refuses it. Until Redis is
+    # up, this container exits and Docker restarts it.
+    environment:
+      TZ: ${TZ}
+      PORT: "3232"
+      NODE_ENV: production
+      HOST_NAME: https://meta.${DOMAIN}
+      DATABASE_URI: sqlite://addon/data/db.sqlite
+      REDIS_URL: redis://aiometadata-redis:6379
+      ADMIN_KEY: ${META_ADMIN_KEY}
+      BUILT_IN_TMDB_API_KEY: ${TMDB_API_KEY}   # server-side, never sent to browsers
+    volumes:
+      - ./data/aiometadata:/app/addon/data
+    security_opt: [no-new-privileges:true]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.meta.rule=Host(`meta.${DOMAIN}`)"
+      - "traefik.http.routers.meta.entrypoints=websecure"
+      - "traefik.http.routers.meta.service=meta"
+      - "traefik.http.routers.meta.middlewares=hardening@file,mesh-only@file"
+      - "traefik.http.services.meta.loadbalancer.server.port=3232"
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # Cache for AIOMetadata. Needs Redis 8+. Not published anywhere.
+  aiometadata-redis:
+    image: redis:8-alpine
+    container_name: aiometadata-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--save", "3600", "1"]
+    volumes:
+      - ./data/aiometadata-redis:/data
+    security_opt: [no-new-privileges:true]
+    labels:
       - "com.centurylinklabs.watchtower.enable=true"
 
   # ── Monitoring exporters (scraped by cloud01 over the mesh) ───────────

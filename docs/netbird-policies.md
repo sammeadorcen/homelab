@@ -19,7 +19,7 @@ Managed in the NetBird dashboard, not in files. The default allow-all policy is 
 | `admins-everything` | `admins` → `All` | All | Bidirectional |
 | `servers-to-servers` | `servers` → `servers` | All | Bidirectional |
 | `everyone-minecraft` | `All` → `game-host` | TCP 25565 | One-way |
-| `media-to-stremio` | `media` → `servers` | TCP 443 | One-way |
+| `media-to-onprem01` | `media` → `game-host` | TCP 443 | One-way |
 
 `everyone-minecraft` is the whole friend-access model. Anyone who can log in at
 all can reach the Minecraft port on onprem01 and nothing else; cloud01 isn't a
