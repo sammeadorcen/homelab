@@ -281,7 +281,7 @@
           <li><div>
             <h3>Applications</h3>
             <ul>
-              <li>Vaultwarden: signups closed, no admin token so <code>/admin</code> is a 404, no password hints, 2FA on. The vault is encrypted client-side regardless.</li>
+              <li>Vaultwarden: signups closed, no password hints, 2FA on. The admin panel uses an Argon2id-hashed token and is served only on a mesh-only hostname, so <code>/admin</code> is a 404 on the public one. The vault is encrypted client-side regardless.</li>
               <li>Most containers run with <code>no-new-privileges</code>; the proxy and vault drop all Linux capabilities; configs are mounted read-only.</li>
               <li>Minecraft: online mode, enforced whitelist, no RCON.</li>
             </ul>
@@ -309,7 +309,7 @@
           <table>
             <thead><tr><th>Risk</th><th>Why I accept it</th><th>Mitigation</th></tr></thead>
             <tbody>
-              <tr><td>Vaultwarden is public</td><td>It has to work when the mesh is down</td><td>Client-side encryption, closed signups, 2FA, CrowdSec, no admin panel</td></tr>
+              <tr><td>Vaultwarden is public</td><td>It has to work when the mesh is down</td><td>Client-side encryption, closed signups, 2FA, CrowdSec, admin panel on the mesh only</td></tr>
               <tr><td>The NetBird control plane is public</td><td>Devices have to reach it to join</td><td>SSO allow-list with 2FA, CrowdSec on its routes</td></tr>
               <tr><td>Docker socket mounted in a few containers</td><td>Needed for routing, updates, logs and game servers</td><td>Read-only where possible; the dashboard goes through a socket proxy that refuses anything but reading container status; only the proxy is on a public route</td></tr>
               <tr><td>Everything auto-updates</td><td>Missed patches are the bigger risk</td><td>Opt-in labels, backups before the update window</td></tr>

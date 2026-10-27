@@ -84,9 +84,10 @@ SSH has no public port on either box.
   and a keyboard and monitor at home.
 
 ### 6. Applications
-- **Vaultwarden:** signups closed after my account was made, no admin token (so
-  `/admin` returns 404), password hints off, 2FA on the account. Vault data is
-  encrypted client-side regardless.
+- **Vaultwarden:** signups closed after my account was made, password hints off,
+  2FA on the account. The admin panel uses an Argon2id-hashed token and is only
+  served on a separate mesh-only hostname; on the public hostname `/admin` has no
+  route, so it returns 404. Vault data is encrypted client-side regardless.
 - **Grafana:** sign-up off, analytics off.
 - **Containers:** `no-new-privileges` daemon-wide on cloud01; `cap_drop: ALL` on
   Traefik and Vaultwarden; non-root UIDs where images allow; config mounted
@@ -121,7 +122,7 @@ SSH has no public port on either box.
 
 | Risk | Why I accept it | Mitigation |
 |---|---|---|
-| Vaultwarden is public | It has to work when the mesh is down | Client-side encryption, closed signups, 2FA, CrowdSec, no admin panel |
+| Vaultwarden is public | It has to work when the mesh is down | Client-side encryption, closed signups, 2FA, CrowdSec, admin panel on the mesh only |
 | NetBird control plane is public | Devices must reach it to join | SSO allow-list + 2FA; CrowdSec on its routes |
 | Docker socket mounted in Traefik, Watchtower, Dozzle, Wings, cAdvisor | Required for discovery, updates and game servers | Read-only where possible; none of these are on a public route except Traefik itself |
 | Read-only Docker API (socket proxy) on onprem01's mesh IP | The dashboard on cloud01 shows container status for both boxes | `POST=0`, containers only; reachable by `admins` and `servers` only. Container details include env vars, so it's treated as admin-only |

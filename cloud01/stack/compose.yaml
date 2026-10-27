@@ -62,11 +62,16 @@ services:
     security_opt: [no-new-privileges:true]
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.vault.rule=Host(`vault.${CLOUD_DOMAIN}`)"
+      - "traefik.http.routers.vault.rule=Host(`vault.${CLOUD_DOMAIN}`) && !PathPrefix(`/admin`)"
       - "traefik.http.routers.vault.entrypoints=websecure"
       - "traefik.http.routers.vault.service=vaultwarden"
       # crowdsec first, so a banned IP is refused before anything else runs
       - "traefik.http.routers.vault.middlewares=crowdsec@file,hardening@file"
+      # Admin panel: only on this mesh-only name; /admin is cut off on the public one.
+      - "traefik.http.routers.vault-admin.rule=Host(`vault-admin.${CLOUD_DOMAIN}`)"
+      - "traefik.http.routers.vault-admin.entrypoints=websecure"
+      - "traefik.http.routers.vault-admin.service=vaultwarden"
+      - "traefik.http.routers.vault-admin.middlewares=hardening@file,mesh-only@file"
       - "traefik.http.services.vaultwarden.loadbalancer.server.port=8080"
       - "com.centurylinklabs.watchtower.enable=true"
 
