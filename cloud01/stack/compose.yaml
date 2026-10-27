@@ -53,6 +53,16 @@ services:
   vaultwarden:
     image: vaultwarden/server:latest
     container_name: vaultwarden
+    # Email (invites, 2FA, new-device alerts) through Google Workspace SMTP,
+    # with the same account and app password as Grafana's alerts.
+    environment:
+      SMTP_HOST: smtp.gmail.com
+      SMTP_PORT: "587"
+      SMTP_SECURITY: starttls
+      SMTP_FROM: ${ALERT_EMAIL}
+      SMTP_FROM_NAME: Vaultwarden
+      SMTP_USERNAME: ${ALERT_EMAIL}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
     restart: unless-stopped
     user: ${PUID_PGID}
     env_file: [./vaultwarden/vaultwarden.env]
