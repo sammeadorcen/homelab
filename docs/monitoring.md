@@ -9,6 +9,7 @@ read-only Docker socket proxy on onprem01. Nothing here is public.
 | Prometheus | cloud01 | Scrapes node-exporter + cAdvisor (both boxes), Traefik (`:8082`), CrowdSec (`:6060`) every 30 s; 90-day retention | — |
 | Grafana | cloud01 | Dashboards + alert rules | Email (Workspace SMTP) |
 | Uptime Kuma | cloud01 | HTTP / GameDig / TCP checks every 60 s; status page `homelab` feeds Homepage | Email (Workspace SMTP) |
+| CrowdSec Web UI | cloud01, `crowdsec.<cloud domain>` | Alerts, decisions (manual bans/unbans), CrowdSec metrics; own login | — |
 | Dozzle + agent | UI cloud01, agent onprem01 `:7007` (mesh IP) | Live logs for both boxes | — |
 | healthchecks.io | outside | `heartbeat` timer every 5 min, only if Vaultwarden and NetBird answer | Email |
 

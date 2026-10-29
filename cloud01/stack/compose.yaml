@@ -105,6 +105,32 @@ services:
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
 
+  # CrowdSec Web UI: alerts, decisions and metrics. Mesh only, own login.
+  crowdsec-web-ui:
+    image: ghcr.io/theduffman85/crowdsec-web-ui:latest
+    container_name: crowdsec-web-ui
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ}
+      CONFIG_UI_TIME_ZONE: ${TZ}
+      CONFIG_UPDATES_ENABLED: "false"          # Watchtower updates it
+      CONFIG_INSTANCE_NAME: cloud01
+      CONFIG_INSTANCE_LAPI_URL: http://crowdsec:8080
+      CONFIG_INSTANCE_LAPI_AUTH_USERNAME: crowdsec-web-ui
+      CONFIG_INSTANCE_LAPI_AUTH_PASSWORD: ${CROWDSEC_UI_PASSWORD}
+      CONFIG_INSTANCE_METRICS_URL: http://crowdsec:6060/metrics
+    volumes:
+      - ./data/crowdsec-web-ui:/app/data      # owned by uid 1000 (the image's node user)
+    security_opt: [no-new-privileges:true]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.crowdsec-ui.rule=Host(`crowdsec.${CLOUD_DOMAIN}`)"
+      - "traefik.http.routers.crowdsec-ui.entrypoints=websecure"
+      - "traefik.http.routers.crowdsec-ui.service=crowdsec-ui"
+      - "traefik.http.routers.crowdsec-ui.middlewares=hardening@file,mesh-only@file"
+      - "traefik.http.services.crowdsec-ui.loadbalancer.server.port=3000"
+      - "com.centurylinklabs.watchtower.enable=true"
+
   # ── Mesh-only: monitoring ─────────────────────────────────────────────
 
   prometheus:

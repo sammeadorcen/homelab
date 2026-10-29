@@ -80,7 +80,9 @@
           url: https://traefik.cloud.example.com
     - CrowdSec:
         icon: crowdsec.png
+        href: https://crowdsec.cloud.example.com
         description: Blocked attackers
+        siteMonitor: https://crowdsec.cloud.example.com
         server: cloud01
         container: crowdsec
         widget:

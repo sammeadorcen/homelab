@@ -24,6 +24,7 @@ snap() { if [ -f "$1" ]; then sqlite3 "$1" ".backup '$DUMPS/$2'"; fi; }
 snap "$STACK/data/vaultwarden/db.sqlite3" vaultwarden.sqlite3
 snap "$STACK/data/grafana/grafana.db"     grafana.db
 snap "$STACK/data/uptimekuma/kuma.db"     kuma.db
+snap "$STACK/data/crowdsec-web-ui/state.db" crowdsec-web-ui.db   # UI users and settings
 
 # NetBird keeps its database in a Docker volume. config.yaml in /srv/netbird
 # holds the key that encrypts it: the two are only useful together.
@@ -47,6 +48,7 @@ restic backup --tag auto --exclude-caches \
     --exclude "$STACK/data/traefik-logs" \
     --exclude "$STACK/data/prometheus" \
     --exclude "$STACK/data/crowdsec/data" \
+    --exclude "$STACK/data/crowdsec-web-ui" \
     "$STACK" /srv/netbird "$DUMPS" \
     /etc/ufw /etc/systemd/system /etc/apt/apt.conf.d /etc/docker \
     /etc/ssh/sshd_config.d /etc/fail2ban /usr/local/bin
