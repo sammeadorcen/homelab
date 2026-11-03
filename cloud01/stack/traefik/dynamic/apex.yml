@@ -1,0 +1,15 @@
+# cloud.<domain> itself: mesh only, sends you to the dashboard.
+# Traefik watches this folder, so changes apply without a restart.
+http:
+  routers:
+    cloud-apex:
+      rule: "Host(`cloud.example.com`)"
+      entryPoints: [websecure]
+      middlewares: [mesh-only, hardening, to-dashboard]
+      service: noop@internal
+  middlewares:
+    to-dashboard:
+      redirectRegex:
+        regex: "^https://cloud\\.example\\.com/(.*)"
+        replacement: "https://dash.cloud.example.com/${1}"
+        permanent: false
