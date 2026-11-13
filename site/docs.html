@@ -179,10 +179,11 @@
           <table>
             <thead><tr><th>Policy</th><th>From → To</th><th>Allows</th></tr></thead>
             <tbody>
-              <tr><td>admins-everything</td><td>admins → All</td><td>Everything, both ways</td></tr>
+              <tr><td>admins-everything</td><td>admins → All</td><td>Everything, one way (other devices can't connect back)</td></tr>
               <tr><td>servers-to-servers</td><td>servers → servers</td><td>Everything (metrics scraping)</td></tr>
-              <tr><td>everyone-minecraft</td><td>All → game-host (onprem01)</td><td>TCP 25565, one way</td></tr>
-              <tr><td>media-to-onprem01</td><td>media → game-host</td><td>TCP 443, one way</td></tr>
+              <tr><td>everyone-minecraft</td><td>All → onprem01</td><td>TCP 25565, one way</td></tr>
+              <tr><td>media-to-onprem01</td><td>media → onprem01</td><td>TCP 443, one way</td></tr>
+              <tr><td>SSH Access</td><td>admins → All</td><td>NetBird SSH, one way</td></tr>
             </tbody>
           </table>
         </div>
