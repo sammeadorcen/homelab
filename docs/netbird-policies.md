@@ -21,7 +21,7 @@ Friends' accounts have no auto-groups, so their devices are only in `All`.
 | `servers-to-servers` | `servers` → `servers` | All | Bidirectional |
 | `everyone-minecraft` | `All` → onprem01 (peer) | TCP 25565 | One-way |
 | `media-to-onprem01` | `Media` → onprem01 (peer) | TCP 443 | One-way |
-| `SSH Access` | `Admins` → `All` | NetBird SSH, port 22 | One-way |
+| `SSH Access` | `Admins` → `servers` | NetBird SSH, port 22 | One-way |
 
 `admins-everything` is one-way on purpose: a bidirectional rule from `Admins` to
 `All` would also let every friend's device open connections to my devices.
