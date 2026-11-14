@@ -1,0 +1,48 @@
+#cloud-config
+# First-boot setup for every VM cloned from the Debian 13 template on Proxmox.
+# Runs once per clone, so each VM gets its own NetBird keys and SSH host keys.
+# Nothing secret lives here: NetBird is installed but not logged in.
+timezone: America/Chicago
+package_update: true
+package_upgrade: true
+packages:
+  - qemu-guest-agent
+  - ufw
+  - unattended-upgrades
+  - ca-certificates
+  - curl
+  - sqlite3
+  - restic
+  - htop
+runcmd:
+  - systemctl enable --now qemu-guest-agent
+  # Same kernel and network hardening as onprem01
+  - curl -fsSL https://raw.githubusercontent.com/sammeadorcen/homelab/main/onprem01/host/sysctl-99-onprem01.conf -o /etc/sysctl.d/99-homelab.conf
+  - sysctl --system
+  # Automatic security updates (Debian, Docker, NetBird), reboots handled by maybe-reboot
+  - curl -fsSL https://raw.githubusercontent.com/sammeadorcen/homelab/main/onprem01/host/apt/20auto-upgrades -o /etc/apt/apt.conf.d/20auto-upgrades
+  - curl -fsSL https://raw.githubusercontent.com/sammeadorcen/homelab/main/onprem01/host/apt/51unattended-upgrades-local -o /etc/apt/apt.conf.d/51unattended-upgrades-local
+  - curl -fsSL https://raw.githubusercontent.com/sammeadorcen/homelab/main/onprem01/host/maybe-reboot -o /usr/local/bin/maybe-reboot
+  - chmod 755 /usr/local/bin/maybe-reboot
+  - curl -fsSL https://raw.githubusercontent.com/sammeadorcen/homelab/main/onprem01/host/systemd/maybe-reboot.service -o /etc/systemd/system/maybe-reboot.service
+  - curl -fsSL https://raw.githubusercontent.com/sammeadorcen/homelab/main/onprem01/host/systemd/maybe-reboot.timer -o /etc/systemd/system/maybe-reboot.timer
+  # Docker, with log rotation and live-restore, plus the stale-socket fix
+  - curl -fsSL https://get.docker.com | sh
+  - curl -fsSL https://raw.githubusercontent.com/sammeadorcen/homelab/main/onprem01/host/daemon.json -o /etc/docker/daemon.json
+  - curl -fsSL https://raw.githubusercontent.com/sammeadorcen/homelab/main/onprem01/host/docker-socket-refresh -o /usr/local/bin/docker-socket-refresh
+  - chmod 755 /usr/local/bin/docker-socket-refresh
+  - curl -fsSL https://raw.githubusercontent.com/sammeadorcen/homelab/main/onprem01/host/systemd/docker-socket-refresh.service -o /etc/systemd/system/docker-socket-refresh.service
+  - systemctl daemon-reload
+  - systemctl enable docker-socket-refresh.service maybe-reboot.timer
+  - systemctl restart docker
+  - systemctl start maybe-reboot.timer
+  - usermod -aG docker sam
+  # NetBird client, installed but NOT logged in (each VM joins with its own setup key)
+  - curl -fsSL https://pkgs.netbird.io/install.sh | sh
+  # Firewall: nothing in except the mesh. The SSH rule is only for the first login.
+  - ufw default deny incoming
+  - ufw default allow outgoing
+  - ufw allow in on wt0 comment 'NetBird mesh'
+  - ufw allow 22/tcp comment 'TEMP bootstrap SSH - delete after netbird up'
+  - ufw --force enable
+  - touch /var/lib/homelab-firstboot-done
